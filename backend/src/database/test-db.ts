@@ -1,23 +1,16 @@
-import dotenv from "dotenv";
 import mysql, { RowDataPacket } from "mysql2/promise";
-
-dotenv.config();
+import { envConfig } from "../config/env";
 
 class DatabaseConnectionTester {
   public async run(): Promise<void> {
     console.log("Testing MySQL connection...");
-    console.log(`  Host:     ${process.env.DB_HOST}`);
-    console.log(`  User:     ${process.env.DB_USER}`);
-    console.log(`  Database: ${process.env.DB_NAME}`);
+    console.log(`  Host:     ${envConfig.db.host}`);
+    console.log(`  User:     ${envConfig.db.user}`);
+    console.log(`  Database: ${envConfig.db.database}`);
     console.log("");
 
     try {
-      const conn = await mysql.createConnection({
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      const conn = await mysql.createConnection(envConfig.db);
 
       console.log("Connected to MySQL successfully.");
 

@@ -1,7 +1,5 @@
-import mysql, { Pool, RowDataPacket, ResultSetHeader } from "mysql2/promise";
-import dotenv from "dotenv";
-
-dotenv.config();
+import mysql, { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { envConfig } from "../config/env";
 
 export class Database {
   private static instance: Database;
@@ -9,10 +7,7 @@ export class Database {
 
   private constructor() {
     this.pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      ...envConfig.db,
       waitForConnections: true,
       connectionLimit: 10,
     });

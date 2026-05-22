@@ -4,7 +4,7 @@
     "module": "Node16",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./backend",
+    "rootDir": "./backend/src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -15,6 +15,6 @@
     "sourceMap": true,
     "moduleResolution": "node16"
   },
-  "include": ["backend/**/*.ts"],
+  "include": ["backend/src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

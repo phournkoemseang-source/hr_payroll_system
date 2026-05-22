@@ -1,31 +1,28 @@
-import dotenv from "dotenv";
 import express, { Application as ExpressApplication } from "express";
 import cors from "cors";
 import path from "path";
+import { envConfig } from "./config/env";
 import { AuthRoutes } from "./routes/AuthRoutes";
 
-dotenv.config();
-
-class Application {
+class App {
   private readonly app: ExpressApplication;
-  private readonly port: string | number;
 
   constructor() {
+    envConfig.validate();
     this.app = express();
-    this.port = process.env.PORT || 5000;
 
-    this.configureMiddleware();
+    this.configureMiddlewares();
     this.configureRoutes();
     this.configureFrontendFallback();
   }
 
   public start(): void {
-    this.app.listen(this.port, () => {
-      console.log(`Server running on http://localhost:${this.port}`);
+    this.app.listen(envConfig.port, () => {
+      console.log(`Server running on http://localhost:${envConfig.port}`);
     });
   }
 
-  private configureMiddleware(): void {
+  private configureMiddlewares(): void {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.static(path.join(__dirname, "../frontend")));
@@ -43,4 +40,4 @@ class Application {
   }
 }
 
-new Application().start();
+new App().start();

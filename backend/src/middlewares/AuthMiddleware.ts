@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { IJwtPayload } from "../types";
+import { JwtUtil } from "../utils/JwtUtil";
+import { HttpResponse } from "../utils/HttpResponse";
+import { UserRole } from "../models/User";
 
 export class AuthMiddleware {
+  private static readonly jwtUtil = new JwtUtil();
+
   public static verifyToken(
     req: Request,
     res: Response,
@@ -11,36 +14,29 @@ export class AuthMiddleware {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).json({ message: "No token provided" });
+      HttpResponse.error(res, 401, "No token provided");
       return;
     }
 
-    const token = authHeader.split(" ")[1];
-
     try {
-      const secret = process.env.JWT_SECRET;
-      if (!secret) {
-        throw new Error("JWT_SECRET is not defined");
-      }
-
-      req.user = jwt.verify(token, secret) as IJwtPayload;
+      req.user = AuthMiddleware.jwtUtil.verify(authHeader.split(" ")[1]);
       next();
     } catch {
-      res.status(401).json({ message: "Invalid or expired token" });
+      HttpResponse.error(res, 401, "Invalid or expired token");
     }
   }
 
   public static requireRole(
-    ...allowedRoles: string[]
+    ...allowedRoles: UserRole[]
   ): (req: Request, res: Response, next: NextFunction) => void {
     return (req: Request, res: Response, next: NextFunction): void => {
       if (!req.user) {
-        res.status(401).json({ message: "Authentication required" });
+        HttpResponse.error(res, 401, "Authentication required");
         return;
       }
 
       if (!allowedRoles.includes(req.user.role)) {
-        res.status(403).json({ message: "Insufficient permissions" });
+        HttpResponse.error(res, 403, "Insufficient permissions");
         return;
       }
 

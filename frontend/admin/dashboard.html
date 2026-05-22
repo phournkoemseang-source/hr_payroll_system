@@ -3,28 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard — HRPayroll</title>
+  <title>Admin Dashboard - HRPayroll</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 16px; }
     .badge { background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
     h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     p { color: #64748b; font-size: 15px; }
-    .user-info { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 28px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .user-info, .create-user { width: min(420px, 100%); background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 28px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .logout-btn { margin-top: 8px; padding: 10px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; }
     .logout-btn:hover { background: #dc2626; }
+    .form { margin-top: 16px; display: grid; gap: 12px; text-align: left; }
+    .field { display: grid; gap: 6px; }
+    label { color: #334155; font-size: 13px; font-weight: 600; }
+    input, select { width: 100%; height: 40px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 12px; color: #0f172a; font: inherit; background: white; }
+    input:focus, select:focus { outline: 3px solid #bfdbfe; border-color: #2563eb; }
+    .submit-btn { width: 100%; height: 42px; margin-top: 4px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+    .submit-btn:hover:not(:disabled) { background: #1d4ed8; }
+    .submit-btn:disabled { opacity: 0.65; cursor: wait; }
+    .alert { display: none; margin-top: 12px; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; text-align: left; }
+    .alert.success { display: block; background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .alert.error { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
   </style>
 </head>
 <body data-role="admin">
   <div class="badge">Admin Portal</div>
   <h1>Admin Dashboard</h1>
+
   <div class="user-info">
-    <p>Logged in as: <strong id="userName">—</strong></p>
-    <p style="margin-top:4px">Role: <strong id="userRole">—</strong></p>
+    <p>Logged in as: <strong id="userName">-</strong></p>
+    <p style="margin-top:4px">Role: <strong id="userRole">-</strong></p>
     <button class="logout-btn" id="logoutButton" type="button">Sign Out</button>
   </div>
+
   <script src="/js/dashboard.js"></script>
 </body>
 </html>
