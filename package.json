@@ -1,5 +1,29 @@
 {
+  "name": "hr-payroll-system",
+  "version": "1.0.0",
+  "description": "HR & Payroll Management System",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.backend.json && tsc -p tsconfig.frontend.json",
+    "start": "npm run build && node dist/server.js",
+    "dev": "nodemon --watch backend --watch frontend/ts --ext ts,html,css --exec \"npm run build && node dist/server.js\"",
+    "test:db": "npm run build && node dist/test-db.js"
+  },
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.9.7"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.9.1",
+    "nodemon": "^3.1.14",
+    "typescript": "^6.0.3"
   }
 }
