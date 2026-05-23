@@ -12,6 +12,57 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS employee_profiles (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  user_id     INT NOT NULL UNIQUE,
+  department  VARCHAR(100) NOT NULL DEFAULT 'Operations',
+  position    VARCHAR(100) NOT NULL DEFAULT 'Staff',
+  start_date  DATE NULL,
+  base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_employee_profiles_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  work_date  DATE NOT NULL,
+  status     ENUM('present','absent','late') NOT NULL DEFAULT 'present',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_attendance_user_date (user_id, work_date),
+  CONSTRAINT fk_attendance_records_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS leave_requests (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  leave_type VARCHAR(60) NOT NULL,
+  start_date DATE NOT NULL,
+  end_date   DATE NOT NULL,
+  status     ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_leave_requests_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payroll_records (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL,
+  pay_period DATE NOT NULL,
+  gross_pay  DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status     ENUM('draft','paid') NOT NULL DEFAULT 'draft',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payroll_records_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
 -- Seed: admin  password = Admin@123
 -- Seed: staff  password = Staff@123
 -- (bcrypt hashes generated with saltRounds=10)
@@ -22,3 +73,11 @@ ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   password = VALUES(password),
   role = VALUES(role);
+
+INSERT IGNORE INTO employee_profiles (user_id, department, position, start_date, base_salary)
+SELECT id,
+  CASE WHEN role = 'admin' THEN 'HR' ELSE 'Operations' END,
+  CASE WHEN role = 'admin' THEN 'Administrator' ELSE 'Staff' END,
+  DATE(created_at),
+  0
+FROM users;

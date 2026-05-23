@@ -1,21 +1,34 @@
 type EmployeeRole = "admin" | "staff";
+type EmployeeStatus = "active" | "inactive";
 
 interface StoredUser {
   name: string;
   role: EmployeeRole;
 }
 
-interface CreateStaffResponse {
+interface Employee {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  position: string;
+  startDate: string | null;
+  salary: number;
+  status: EmployeeStatus;
+}
+
+interface EmployeeListResponse {
+  employees?: Employee[];
   message?: string;
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-    role: EmployeeRole;
-  };
+}
+
+interface EmployeeResponse {
+  employee?: Employee;
+  message?: string;
 }
 
 class EmployeesPage {
+  private employees: Employee[] = [];
   private readonly userName = this.getElement<HTMLElement>("userName");
   private readonly userRole = this.getElement<HTMLElement>("userRole");
   private readonly logoutButton = this.getElement<HTMLButtonElement>("logoutButton");
@@ -30,6 +43,11 @@ class EmployeesPage {
   private readonly tableBody = this.getElement<HTMLTableSectionElement>("employeeTableBody");
   private readonly employeeCount = this.getElement<HTMLElement>("employeeCount");
   private readonly searchInput = this.getElement<HTMLInputElement>("employeeSearch");
+  private readonly departmentFilter = this.getElement<HTMLSelectElement>("departmentFilter");
+  private readonly statusFilter = this.getElement<HTMLSelectElement>("statusFilter");
+  private readonly employeeIdInput = this.getElement<HTMLInputElement>("employeeId");
+  private readonly passwordInput = this.getElement<HTMLInputElement>("employeePassword");
+  private readonly modalTitle = this.getElement<HTMLElement>("addEmployeeTitle");
 
   public init(): void {
     const user = this.getStoredUser();
@@ -42,12 +60,12 @@ class EmployeesPage {
     this.userRole.textContent = "Admin";
     this.avatarInitial.textContent = user.name.charAt(0).toUpperCase();
     this.bindEvents();
-    this.updateEmployeeCount();
+    void this.loadEmployees();
   }
 
   private bindEvents(): void {
     this.logoutButton.addEventListener("click", () => this.logout());
-    this.openModalButton.addEventListener("click", () => this.openModal());
+    this.openModalButton.addEventListener("click", () => this.openCreateModal());
     this.closeModalButton.addEventListener("click", () => this.closeModal());
     this.cancelButton.addEventListener("click", () => this.closeModal());
     this.modal.addEventListener("click", (event) => {
@@ -56,7 +74,39 @@ class EmployeesPage {
       }
     });
     this.form.addEventListener("submit", (event) => void this.handleSubmit(event));
-    this.searchInput.addEventListener("input", () => this.filterEmployees());
+    this.tableBody.addEventListener("click", (event) => void this.handleTableClick(event));
+    this.searchInput.addEventListener("input", () => this.renderEmployees());
+    this.departmentFilter.addEventListener("change", () => this.renderEmployees());
+    this.statusFilter.addEventListener("change", () => this.renderEmployees());
+  }
+
+  private async loadEmployees(): Promise<void> {
+    const token = this.getStoredToken();
+    if (!token) {
+      window.location.href = "/login.html";
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/employees", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 401 || response.status === 403) {
+        this.logout();
+        return;
+      }
+
+      const data = (await response.json()) as EmployeeListResponse;
+      if (!response.ok) {
+        this.renderError(data.message || "Unable to load employees.");
+        return;
+      }
+
+      this.employees = data.employees || [];
+      this.renderEmployees();
+    } catch {
+      this.renderError("Unable to connect to server.");
+    }
   }
 
   private async handleSubmit(event: SubmitEvent): Promise<void> {
@@ -69,98 +119,240 @@ class EmployeesPage {
       return;
     }
 
-    const formData = new FormData(this.form);
-    const name = String(formData.get("name") || "").trim();
-    const email = String(formData.get("email") || "").trim().toLowerCase();
-    const password = String(formData.get("password") || "");
-    const department = String(formData.get("department") || "Operations");
-    const position = String(formData.get("position") || "Staff").trim() || "Staff";
-    const salary = String(formData.get("salary") || "$0").trim() || "$0";
-    const startDate = String(formData.get("startDate") || "");
+    const employeeId = Number(this.employeeIdInput.value || 0);
+    const isEditing = employeeId > 0;
+    const payload = this.getFormPayload();
 
-    if (!name || !email || !password) {
-      this.setAlert("Name, email, and password are required.", "error");
+    if (!payload.name || !payload.email || !payload.department || !payload.position) {
+      this.setAlert("Name, email, department, and position are required.", "error");
       return;
     }
 
-    if (password.length < 6) {
+    if (!isEditing && payload.password.length < 6) {
       this.setAlert("Password must be at least 6 characters.", "error");
       return;
     }
 
     this.submitButton.disabled = true;
-    this.submitButton.textContent = "Creating...";
+    this.submitButton.textContent = isEditing ? "Saving..." : "Creating...";
 
     try {
-      const response = await fetch("/api/auth/users", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        isEditing ? `/api/employees/${employeeId}` : "/api/employees",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(isEditing ? this.withoutPassword(payload) : payload),
         },
-        body: JSON.stringify({ name, email, password, role: "staff" }),
-      });
-      const data = (await response.json()) as CreateStaffResponse;
+      );
+      const data = (await response.json()) as EmployeeResponse;
 
-      if (!response.ok) {
-        this.setAlert(data.message || "Unable to create staff account.", "error");
+      if (!response.ok || !data.employee) {
+        this.setAlert(data.message || "Unable to save employee.", "error");
         return;
       }
 
-      this.addEmployeeRow({
-        name: data.user?.name || name,
-        email: data.user?.email || email,
-        department,
-        position,
-        salary,
-        startDate,
-      });
-      this.form.reset();
-      this.setAlert(`${name} can now log in with ${email}.`, "success");
-      this.updateEmployeeCount();
+      if (isEditing) {
+        this.employees = this.employees.map((employee) =>
+          employee.id === data.employee?.id ? data.employee : employee,
+        );
+      } else {
+        this.employees.unshift(data.employee);
+      }
+
+      this.renderEmployees();
+      this.closeModal();
     } catch {
       this.setAlert("Unable to connect to server.", "error");
     } finally {
       this.submitButton.disabled = false;
-      this.submitButton.textContent = "Create Staff Account";
+      this.submitButton.textContent = "Save Employee";
     }
   }
 
-  private addEmployeeRow(employee: {
-    name: string;
-    email: string;
-    department: string;
-    position: string;
-    salary: string;
-    startDate: string;
-  }): void {
-    const row = document.createElement("tr");
-    const initials = this.getInitials(employee.name);
-    const startDate = employee.startDate
-      ? new Date(`${employee.startDate}T00:00:00`).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-      : "Today";
+  private async handleTableClick(event: Event): Promise<void> {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+    if (!button) {
+      return;
+    }
 
-    row.innerHTML = `
-      <td><div class="employee"><span class="mini-avatar" style="background:#2563eb">${initials}</span><div><strong>${this.escapeHtml(employee.name)}</strong><span>${this.escapeHtml(employee.email)}</span></div></div></td>
-      <td>${this.escapeHtml(employee.department)}</td>
-      <td>${this.escapeHtml(employee.position)}</td>
-      <td>${startDate}</td>
-      <td>${this.escapeHtml(employee.salary)}</td>
-      <td><span class="status">Active</span></td>
-      <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn danger-btn" type="button">Deactivate</button></div></td>
-    `;
-    this.tableBody.prepend(row);
+    const employee = this.findEmployee(button.dataset.id);
+    if (!employee) {
+      return;
+    }
+
+    const action = button.dataset.action;
+    if (action === "edit") {
+      this.openEditModal(employee);
+      return;
+    }
+
+    if (action === "toggle-status") {
+      await this.saveEmployee({
+        ...employee,
+        status: employee.status === "active" ? "inactive" : "active",
+      });
+      return;
+    }
+
+    if (action === "delete") {
+      await this.deleteEmployee(employee);
+    }
   }
 
-  private filterEmployees(): void {
+  private async saveEmployee(employee: Employee): Promise<void> {
+    const token = this.getStoredToken();
+    if (!token) {
+      window.location.href = "/login.html";
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${employee.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(employee),
+      });
+      const data = (await response.json()) as EmployeeResponse;
+      if (!response.ok || !data.employee) {
+        window.alert(data.message || "Unable to update employee.");
+        return;
+      }
+
+      this.employees = this.employees.map((item) =>
+        item.id === data.employee?.id ? data.employee : item,
+      );
+      this.renderEmployees();
+    } catch {
+      window.alert("Unable to connect to server.");
+    }
+  }
+
+  private async deleteEmployee(employee: Employee): Promise<void> {
+    if (!window.confirm(`Delete ${employee.name}? This removes their staff login too.`)) {
+      return;
+    }
+
+    const token = this.getStoredToken();
+    if (!token) {
+      window.location.href = "/login.html";
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${employee.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const data = (await response.json()) as EmployeeResponse;
+        window.alert(data.message || "Unable to delete employee.");
+        return;
+      }
+
+      this.employees = this.employees.filter((item) => item.id !== employee.id);
+      this.renderEmployees();
+    } catch {
+      window.alert("Unable to connect to server.");
+    }
+  }
+
+  private renderEmployees(): void {
+    const filtered = this.getFilteredEmployees();
+    this.employeeCount.textContent = String(this.employees.length);
+
+    if (filtered.length === 0) {
+      this.tableBody.innerHTML = `<tr><td colspan="7">No employees found.</td></tr>`;
+      return;
+    }
+
+    this.tableBody.innerHTML = filtered.map((employee) => this.renderEmployeeRow(employee)).join("");
+  }
+
+  private renderEmployeeRow(employee: Employee): string {
+    const inactive = employee.status === "inactive";
+    return `
+      <tr>
+        <td>
+          <div class="employee">
+            <span class="mini-avatar">${this.getInitials(employee.name)}</span>
+            <div>
+              <strong>${this.escapeHtml(employee.name)}</strong>
+              <span>${this.escapeHtml(employee.email)}</span>
+            </div>
+          </div>
+        </td>
+        <td>${this.escapeHtml(employee.department)}</td>
+        <td>${this.escapeHtml(employee.position)}</td>
+        <td>${employee.startDate ? this.formatDate(employee.startDate) : "-"}</td>
+        <td>${this.formatMoney(employee.salary)}</td>
+        <td><span class="status ${inactive ? "inactive" : ""}">${inactive ? "Inactive" : "Active"}</span></td>
+        <td>
+          <div class="row-actions">
+            <button class="small-btn" data-action="edit" data-id="${employee.id}" type="button">Edit</button>
+            <button class="small-btn ${inactive ? "success-btn" : "danger-btn"}" data-action="toggle-status" data-id="${employee.id}" type="button">${inactive ? "Activate" : "Deactivate"}</button>
+            <button class="small-btn delete-btn" data-action="delete" data-id="${employee.id}" type="button">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  private renderError(message: string): void {
+    this.tableBody.innerHTML = `<tr><td colspan="7">${this.escapeHtml(message)}</td></tr>`;
+    this.employeeCount.textContent = "0";
+  }
+
+  private getFilteredEmployees(): Employee[] {
     const term = this.searchInput.value.trim().toLowerCase();
-    Array.from(this.tableBody.querySelectorAll("tr")).forEach((row) => {
-      row.toggleAttribute("hidden", !row.textContent?.toLowerCase().includes(term));
+    const department = this.departmentFilter.value;
+    const status = this.statusFilter.value.toLowerCase();
+
+    return this.employees.filter((employee) => {
+      const matchesSearch =
+        !term ||
+        employee.name.toLowerCase().includes(term) ||
+        employee.email.toLowerCase().includes(term) ||
+        employee.position.toLowerCase().includes(term);
+      const matchesDepartment =
+        department === "All Departments" || employee.department === department;
+      const matchesStatus = status === "all status" || employee.status === status;
+      return matchesSearch && matchesDepartment && matchesStatus;
     });
+  }
+
+  private openCreateModal(): void {
+    this.form.reset();
+    this.employeeIdInput.value = "";
+    this.passwordInput.required = true;
+    this.passwordInput.disabled = false;
+    this.modalTitle.textContent = "Add Employee";
+    this.submitButton.textContent = "Create Staff Account";
+    this.openModal();
+  }
+
+  private openEditModal(employee: Employee): void {
+    this.form.reset();
+    this.employeeIdInput.value = String(employee.id);
+    this.setFormValue("name", employee.name);
+    this.setFormValue("email", employee.email);
+    this.setFormValue("department", employee.department);
+    this.setFormValue("position", employee.position);
+    this.setFormValue("salary", String(employee.salary));
+    this.setFormValue("startDate", employee.startDate || "");
+    this.setFormValue("status", employee.status);
+    this.passwordInput.value = "";
+    this.passwordInput.required = false;
+    this.passwordInput.disabled = true;
+    this.modalTitle.textContent = "Edit Employee";
+    this.submitButton.textContent = "Save Employee";
+    this.openModal();
   }
 
   private openModal(): void {
@@ -174,8 +366,47 @@ class EmployeesPage {
     this.setAlert("", "");
   }
 
-  private updateEmployeeCount(): void {
-    this.employeeCount.textContent = String(this.tableBody.querySelectorAll("tr").length);
+  private getFormPayload(): {
+    name: string;
+    email: string;
+    password: string;
+    department: string;
+    position: string;
+    salary: string;
+    startDate: string;
+    status: EmployeeStatus;
+  } {
+    const formData = new FormData(this.form);
+    return {
+      name: String(formData.get("name") || "").trim(),
+      email: String(formData.get("email") || "").trim().toLowerCase(),
+      password: String(formData.get("password") || ""),
+      department: String(formData.get("department") || "Operations").trim(),
+      position: String(formData.get("position") || "Staff").trim() || "Staff",
+      salary: String(formData.get("salary") || "0").trim() || "0",
+      startDate: String(formData.get("startDate") || ""),
+      status: String(formData.get("status") || "active") as EmployeeStatus,
+    };
+  }
+
+  private withoutPassword(payload: ReturnType<EmployeesPage["getFormPayload"]>): Omit<
+    ReturnType<EmployeesPage["getFormPayload"]>,
+    "password"
+  > {
+    const { password: _password, ...data } = payload;
+    return data;
+  }
+
+  private findEmployee(id: string | undefined): Employee | null {
+    const employeeId = Number(id || 0);
+    return this.employees.find((employee) => employee.id === employeeId) || null;
+  }
+
+  private setFormValue(name: string, value: string): void {
+    const field = this.form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+    if (field) {
+      field.value = value;
+    }
   }
 
   private getStoredUser(): StoredUser | null {
@@ -210,6 +441,22 @@ class EmployeesPage {
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())
       .join("");
+  }
+
+  private formatDate(value: string): string {
+    return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  private formatMoney(value: number): string {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
   }
 
   private setAlert(message: string, type: "" | "error" | "success"): void {

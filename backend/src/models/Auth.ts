@@ -22,6 +22,10 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   role: UserRole;
+  department?: string;
+  position?: string;
+  salary?: string | number;
+  startDate?: string;
 }
 
 export interface ErrorResponse {

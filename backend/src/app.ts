@@ -3,6 +3,8 @@ import cors from "cors";
 import path from "path";
 import { envConfig } from "./config/env";
 import { AuthRoutes } from "./routes/AuthRoutes";
+import { DashboardRoutes } from "./routes/DashboardRoutes";
+import { EmployeeRoutes } from "./routes/EmployeeRoutes";
 
 class App {
   private readonly app: ExpressApplication;
@@ -30,7 +32,11 @@ class App {
 
   private configureRoutes(): void {
     const authRoutes = new AuthRoutes();
+    const dashboardRoutes = new DashboardRoutes();
+    const employeeRoutes = new EmployeeRoutes();
     this.app.use("/api/auth", authRoutes.router);
+    this.app.use("/api/dashboard", dashboardRoutes.router);
+    this.app.use("/api/employees", employeeRoutes.router);
   }
 
   private configureFrontendFallback(): void {

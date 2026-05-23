@@ -61,6 +61,7 @@
     .small-btn { height: 37px; padding: 0 18px; border-radius: 9px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer; }
     .danger-btn { color: #dc2626; background: #fff1f2; border-color: #fecaca; }
     .success-btn { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+    .delete-btn { color: #991b1b; background: #fee2e2; border-color: #fecaca; }
     .modal-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(15,23,42,0.48); z-index: 20; }
     .modal-backdrop.open { display: flex; }
     .modal { width: min(520px, 100%); background: white; border-radius: 12px; box-shadow: 0 24px 70px rgba(15,23,42,0.3); overflow: hidden; }
@@ -173,14 +174,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             <input id="employeeSearch" type="search" placeholder="Search by name or email..." />
           </label>
-          <select class="filter-select" aria-label="Department filter">
+          <select class="filter-select" id="departmentFilter" aria-label="Department filter">
             <option>All Departments</option>
             <option>Engineering</option>
             <option>Finance</option>
             <option>HR</option>
             <option>Marketing</option>
           </select>
-          <select class="filter-select" aria-label="Status filter">
+          <select class="filter-select" id="statusFilter" aria-label="Status filter">
             <option>All Status</option>
             <option>Active</option>
             <option>Inactive</option>
@@ -201,51 +202,7 @@
               </tr>
             </thead>
             <tbody id="employeeTableBody">
-              <tr>
-                <td><div class="employee"><span class="mini-avatar">SC</span><div><strong>Sophea Chan</strong><span>sophea@co.com</span></div></div></td>
-                <td>Engineering</td>
-                <td>Backend Dev</td>
-                <td>Mar 1, 2026</td>
-                <td>$1,200</td>
-                <td><span class="status">Active</span></td>
-                <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn danger-btn" type="button">Deactivate</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="employee"><span class="mini-avatar" style="background:#0ea979">RK</span><div><strong>Ratha Keo</strong><span>ratha@co.com</span></div></div></td>
-                <td>Finance</td>
-                <td>Accountant</td>
-                <td>Jan 15, 2026</td>
-                <td>$980</td>
-                <td><span class="status">Active</span></td>
-                <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn danger-btn" type="button">Deactivate</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="employee"><span class="mini-avatar" style="background:#d97706">MP</span><div><strong>Maly Pich</strong><span>maly@co.com</span></div></div></td>
-                <td>HR</td>
-                <td>HR Officer</td>
-                <td>Feb 20, 2026</td>
-                <td>$850</td>
-                <td><span class="status">Active</span></td>
-                <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn danger-btn" type="button">Deactivate</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="employee"><span class="mini-avatar" style="background:#dc2626">BL</span><div><strong>Borey Lim</strong><span>borey@co.com</span></div></div></td>
-                <td>Marketing</td>
-                <td>Designer</td>
-                <td>Apr 5, 2025</td>
-                <td>$760</td>
-                <td><span class="status inactive">Inactive</span></td>
-                <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn success-btn" type="button">Activate</button></div></td>
-              </tr>
-              <tr>
-                <td><div class="employee"><span class="mini-avatar" style="background:#7c3aed">VN</span><div><strong>Vanna Nhem</strong><span>vanna@co.com</span></div></div></td>
-                <td>Engineering</td>
-                <td>Frontend Dev</td>
-                <td>May 1, 2026</td>
-                <td>$1,100</td>
-                <td><span class="status">Active</span></td>
-                <td><div class="row-actions"><button class="small-btn" type="button">Edit</button><button class="small-btn danger-btn" type="button">Deactivate</button></div></td>
-              </tr>
+              <tr><td colspan="7">Loading employees...</td></tr>
             </tbody>
           </table>
         </section>
@@ -265,6 +222,7 @@
 
       <form class="form" id="addEmployeeForm">
         <div class="alert" id="addEmployeeAlert"></div>
+        <input id="employeeId" name="id" type="hidden" />
         <div class="field">
           <label for="employeeName">Full name</label>
           <input id="employeeName" name="name" type="text" autocomplete="name" required />
@@ -276,6 +234,13 @@
         <div class="field">
           <label for="employeePassword">Temporary login password</label>
           <input id="employeePassword" name="password" type="password" autocomplete="new-password" minlength="6" required />
+        </div>
+        <div class="field">
+          <label for="employeeStatus">Status</label>
+          <select id="employeeStatus" name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
         <div class="form-grid">
           <div class="field">
@@ -305,7 +270,7 @@
         </div>
         <div class="modal-actions">
           <button class="secondary-btn" id="cancelAddEmployee" type="button">Cancel</button>
-          <button class="submit-btn" id="addEmployeeButton" type="submit">Create Staff Account</button>
+          <button class="submit-btn" id="addEmployeeButton" type="submit">Save Employee</button>
         </div>
       </form>
     </div>
