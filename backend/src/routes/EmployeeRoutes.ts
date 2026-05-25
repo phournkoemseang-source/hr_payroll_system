@@ -1,17 +1,16 @@
-import { Router } from "express";
 import { EmployeeController } from "../controllers/EmployeeController";
-import { AuthMiddleware } from "../middlewares/AuthMiddleware";
+import { BaseRoutes } from "./BaseRoutes";
 
-export class EmployeeRoutes {
-  public readonly router = Router();
+export class EmployeeRoutes extends BaseRoutes {
   private readonly employeeController = new EmployeeController();
 
   constructor() {
+    super();
     this.initializeRoutes();
   }
 
-  private initializeRoutes(): void {
-    this.router.use(AuthMiddleware.verifyToken, AuthMiddleware.requireRole("admin"));
+  protected initializeRoutes(): void {
+    this.router.use(...this.adminOnly());
     this.router.get("/", this.employeeController.list.bind(this.employeeController));
     this.router.post("/", this.employeeController.create.bind(this.employeeController));
     this.router.put("/:id", this.employeeController.update.bind(this.employeeController));

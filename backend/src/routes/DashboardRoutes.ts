@@ -1,19 +1,18 @@
-import { Router } from "express";
 import { DashboardController } from "../controllers/DashboardController";
-import { AuthMiddleware } from "../middlewares/AuthMiddleware";
+import { BaseRoutes } from "./BaseRoutes";
 
-export class DashboardRoutes {
-  public readonly router = Router();
+export class DashboardRoutes extends BaseRoutes {
   private readonly dashboardController = new DashboardController();
 
   constructor() {
+    super();
     this.initializeRoutes();
   }
 
-  private initializeRoutes(): void {
+  protected initializeRoutes(): void {
     this.router.get(
       "/",
-      AuthMiddleware.verifyToken,
+      ...this.authenticated(),
       this.dashboardController.getDashboard.bind(this.dashboardController),
     );
   }
