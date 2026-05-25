@@ -94,7 +94,7 @@
       .content { padding: 22px 16px; }
       .page-head { flex-direction: column; }
       .card { overflow-x: auto; }
-      .table { min-width: 980px; }
+      .table { min-width: 1120px; }
       .form-grid { grid-template-columns: 1fr; }
       .nav { grid-template-columns: 1fr; }
     }
@@ -193,6 +193,7 @@
             <thead>
               <tr>
                 <th>Employee</th>
+                <th>Login Password</th>
                 <th>Department</th>
                 <th>Position</th>
                 <th>Start Date</th>
@@ -202,7 +203,7 @@
               </tr>
             </thead>
             <tbody id="employeeTableBody">
-              <tr><td colspan="7">Loading employees...</td></tr>
+              <tr><td colspan="8">Loading employees...</td></tr>
             </tbody>
           </table>
         </section>
@@ -215,7 +216,7 @@
       <div class="modal-head">
         <div>
           <h3 id="addEmployeeTitle">Add Employee</h3>
-          <p>Staff can log in with the email and password you provide.</p>
+          <p>Staff can log in with the email and default password you provide.</p>
         </div>
         <button class="close-btn" id="closeAddEmployeeModal" type="button" aria-label="Close">x</button>
       </div>
@@ -232,8 +233,8 @@
           <input id="employeeEmail" name="email" type="email" autocomplete="email" required />
         </div>
         <div class="field">
-          <label for="employeePassword">Temporary login password</label>
-          <input id="employeePassword" name="password" type="password" autocomplete="new-password" minlength="6" required />
+          <label for="employeePassword">Default login password</label>
+          <input id="employeePassword" name="password" type="text" autocomplete="off" minlength="6" required />
         </div>
         <div class="field">
           <label for="employeeStatus">Status</label>

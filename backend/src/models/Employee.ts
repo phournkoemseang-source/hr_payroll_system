@@ -4,6 +4,7 @@ export interface Employee {
   id: number;
   name: string;
   email: string;
+  loginPassword: string | null;
   department: string;
   position: string;
   startDate: string | null;
@@ -25,6 +26,7 @@ export interface CreateEmployeeRequest {
 export interface UpdateEmployeeRequest {
   name: string;
   email: string;
+  password?: string;
   department: string;
   position: string;
   startDate?: string | null;

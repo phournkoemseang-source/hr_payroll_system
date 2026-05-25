@@ -10,6 +10,7 @@ interface Employee {
   id: number;
   name: string;
   email: string;
+  loginPassword: string | null;
   department: string;
   position: string;
   startDate: string | null;
@@ -128,7 +129,7 @@ class EmployeesPage {
       return;
     }
 
-    if (!isEditing && payload.password.length < 6) {
+    if ((!isEditing || payload.password) && payload.password.length < 6) {
       this.setAlert("Password must be at least 6 characters.", "error");
       return;
     }
@@ -145,7 +146,7 @@ class EmployeesPage {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(isEditing ? this.withoutPassword(payload) : payload),
+          body: JSON.stringify(payload),
         },
       );
       const data = (await response.json()) as EmployeeResponse;
@@ -268,7 +269,7 @@ class EmployeesPage {
     this.employeeCount.textContent = String(this.employees.length);
 
     if (filtered.length === 0) {
-      this.tableBody.innerHTML = `<tr><td colspan="7">No employees found.</td></tr>`;
+      this.tableBody.innerHTML = `<tr><td colspan="8">No employees found.</td></tr>`;
       return;
     }
 
@@ -288,6 +289,7 @@ class EmployeesPage {
             </div>
           </div>
         </td>
+        <td>${this.escapeHtml(employee.loginPassword || "Reset to view")}</td>
         <td>${this.escapeHtml(employee.department)}</td>
         <td>${this.escapeHtml(employee.position)}</td>
         <td>${employee.startDate ? this.formatDate(employee.startDate) : "-"}</td>
@@ -305,7 +307,7 @@ class EmployeesPage {
   }
 
   private renderError(message: string): void {
-    this.tableBody.innerHTML = `<tr><td colspan="7">${this.escapeHtml(message)}</td></tr>`;
+    this.tableBody.innerHTML = `<tr><td colspan="8">${this.escapeHtml(message)}</td></tr>`;
     this.employeeCount.textContent = "0";
   }
 
@@ -332,6 +334,7 @@ class EmployeesPage {
     this.employeeIdInput.value = "";
     this.passwordInput.required = true;
     this.passwordInput.disabled = false;
+    this.passwordInput.placeholder = "";
     this.modalTitle.textContent = "Add Employee";
     this.submitButton.textContent = "Create Staff Account";
     this.openModal();
@@ -347,9 +350,10 @@ class EmployeesPage {
     this.setFormValue("salary", String(employee.salary));
     this.setFormValue("startDate", employee.startDate || "");
     this.setFormValue("status", employee.status);
-    this.passwordInput.value = "";
+    this.passwordInput.value = employee.loginPassword || "";
     this.passwordInput.required = false;
-    this.passwordInput.disabled = true;
+    this.passwordInput.disabled = false;
+    this.passwordInput.placeholder = "Leave blank to keep current password";
     this.modalTitle.textContent = "Edit Employee";
     this.submitButton.textContent = "Save Employee";
     this.openModal();
@@ -387,14 +391,6 @@ class EmployeesPage {
       startDate: String(formData.get("startDate") || ""),
       status: String(formData.get("status") || "active") as EmployeeStatus,
     };
-  }
-
-  private withoutPassword(payload: ReturnType<EmployeesPage["getFormPayload"]>): Omit<
-    ReturnType<EmployeesPage["getFormPayload"]>,
-    "password"
-  > {
-    const { password: _password, ...data } = payload;
-    return data;
   }
 
   private findEmployee(id: string | undefined): Employee | null {

@@ -1,7 +1,10 @@
+import { RowDataPacket } from "mysql2";
 import { BaseRepository } from "./BaseRepository";
 
 export abstract class SchemaRepository extends BaseRepository {
   protected async ensureEmployeeProfileSchema(): Promise<void> {
+    await this.ensureUserLoginPasswordColumn();
+
     await this.execute(`
       CREATE TABLE IF NOT EXISTS employee_profiles (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -19,6 +22,26 @@ export abstract class SchemaRepository extends BaseRepository {
     `);
 
     await this.seedMissingEmployeeProfiles();
+  }
+
+  private async ensureUserLoginPasswordColumn(): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>(
+      "SHOW COLUMNS FROM users LIKE 'login_password'",
+    );
+
+    if (rows.length > 0) {
+      return;
+    }
+
+    await this.execute("ALTER TABLE users ADD COLUMN login_password VARCHAR(255) NULL");
+    await this.execute(`
+      UPDATE users
+      SET login_password = CASE
+        WHEN email = 'staff@hrpayroll.com' THEN 'Staff@123'
+        ELSE login_password
+      END
+      WHERE role = 'staff' AND login_password IS NULL
+    `);
   }
 
   protected async ensureHrSchema(): Promise<void> {

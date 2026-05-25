@@ -11,6 +11,7 @@ interface EmployeeRow extends RowDataPacket {
   id: number;
   name: string;
   email: string;
+  loginPassword: string | null;
   department: string;
   position: string;
   startDate: string | null;
@@ -29,6 +30,7 @@ export class EmployeeRepository extends SchemaRepository {
       SELECT u.id,
         u.name,
         u.email,
+        u.login_password AS loginPassword,
         ep.department,
         ep.position,
         DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
@@ -49,6 +51,7 @@ export class EmployeeRepository extends SchemaRepository {
         SELECT u.id,
           u.name,
           u.email,
+          u.login_password AS loginPassword,
           ep.department,
           ep.position,
           DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
@@ -69,6 +72,7 @@ export class EmployeeRepository extends SchemaRepository {
         SELECT u.id,
           u.name,
           u.email,
+          u.login_password AS loginPassword,
           ep.department,
           ep.position,
           DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
@@ -90,8 +94,8 @@ export class EmployeeRepository extends SchemaRepository {
     await this.ensureSchema();
     const userId = await this.transaction(async (connection) => {
       const [result] = await connection.execute<any>(
-        "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'staff')",
-        [data.name, data.email, hashedPassword],
+        "INSERT INTO users (name, email, password, login_password, role) VALUES (?, ?, ?, ?, 'staff')",
+        [data.name, data.email, hashedPassword, data.password],
       );
       const userId = Number(result.insertId);
 
@@ -117,7 +121,12 @@ export class EmployeeRepository extends SchemaRepository {
     return (await this.findById(userId)) as Employee;
   }
 
-  public async update(id: number, data: UpdateEmployeeRequest): Promise<Employee | null> {
+  public async update(
+    id: number,
+    data: UpdateEmployeeRequest,
+    hashedPassword?: string,
+    loginPassword?: string,
+  ): Promise<Employee | null> {
     await this.ensureSchema();
     const existing = await this.findById(id);
     if (!existing) {
@@ -125,10 +134,17 @@ export class EmployeeRepository extends SchemaRepository {
     }
 
     await this.transaction(async (connection) => {
-      await connection.execute(
-        "UPDATE users SET name = ?, email = ? WHERE id = ? AND role = 'staff'",
-        [data.name, data.email, id],
-      );
+      if (hashedPassword) {
+        await connection.execute(
+          "UPDATE users SET name = ?, email = ?, password = ?, login_password = ? WHERE id = ? AND role = 'staff'",
+          [data.name, data.email, hashedPassword, loginPassword || null, id],
+        );
+      } else {
+        await connection.execute(
+          "UPDATE users SET name = ?, email = ? WHERE id = ? AND role = 'staff'",
+          [data.name, data.email, id],
+        );
+      }
       await connection.execute(
         `
           INSERT INTO employee_profiles
@@ -180,6 +196,7 @@ export class EmployeeRepository extends SchemaRepository {
       id: Number(row.id),
       name: row.name,
       email: row.email,
+      loginPassword: row.loginPassword,
       department: row.department,
       position: row.position,
       startDate: row.startDate,

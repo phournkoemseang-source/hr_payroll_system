@@ -42,13 +42,21 @@ export class EmployeeService {
       return "email_exists";
     }
 
-    const employee = await this.employeeRepository.update(id, {
-      ...data,
-      name: data.name.trim(),
-      email,
-      department: data.department.trim(),
-      position: data.position.trim(),
-    });
+    const password = data.password?.trim();
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+
+    const employee = await this.employeeRepository.update(
+      id,
+      {
+        ...data,
+        name: data.name.trim(),
+        email,
+        department: data.department.trim(),
+        position: data.position.trim(),
+      },
+      hashedPassword,
+      password,
+    );
 
     return employee || "not_found";
   }

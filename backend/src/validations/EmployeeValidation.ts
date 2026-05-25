@@ -36,6 +36,10 @@ export class EmployeeValidation {
       return "Status must be active or inactive";
     }
 
+    if (body.password && body.password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+
     return null;
   }
 
