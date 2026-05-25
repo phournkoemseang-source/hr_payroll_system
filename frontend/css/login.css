@@ -59,6 +59,8 @@ body {
   background: var(--bg);
   color: var(--t1);
   min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background var(--t), color var(--t);
 }
@@ -125,16 +127,17 @@ body {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 72px 16px 24px;
 }
 
 /* ── Card ──────────────────────────────────── */
 .card {
   width: 100%;
-  max-width: 420px;
+  max-width: min(420px, calc(100vw - 32px));
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -223,6 +226,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   margin-bottom: 6px;
 }
 .label-row label { margin-bottom: 0; }
@@ -368,6 +372,7 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 20px;
   font-size: 12px;
@@ -376,6 +381,19 @@ input:focus {
 
 /* ── Responsive ────────────────────────────── */
 @media (max-width: 480px) {
-  .card { padding: 32px 24px 28px; border-radius: 16px; }
+  .theme-btn { top: 12px; right: 12px; }
+  .page { align-items: flex-start; padding: 64px 12px 18px; }
+  .card { max-width: 100%; padding: 28px 20px 24px; border-radius: 16px; }
   .heading h1 { font-size: 22px; }
+  .label-row { align-items: flex-start; flex-direction: column; }
+  input[type="email"],
+  input[type="password"],
+  input[type="text"] { height: 44px; font-size: 16px; }
+}
+
+@media (max-height: 680px) and (min-width: 481px) {
+  .page { align-items: flex-start; }
+  .card { padding-top: 30px; padding-bottom: 26px; }
+  .logo { margin-bottom: 20px; }
+  .heading { margin-bottom: 20px; }
 }
