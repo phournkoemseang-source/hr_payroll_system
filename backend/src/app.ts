@@ -40,6 +40,15 @@ class App {
   }
 
   private configureFrontendFallback(): void {
+    this.app.get("/admin/dashboard.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/admin/dashboard.html"));
+    });
+    this.app.get("/admin/employees.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/admin/employees.html"));
+    });
+    this.app.get("/staff/dashboard.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/staff/dashboard.html"));
+    });
     this.app.get("*", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/login.html"));
     });
