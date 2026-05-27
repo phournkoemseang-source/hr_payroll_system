@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Attendance - HRPayroll</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f6f8fb; color: #111827; animation: pageIn .16s ease-out both; transition: opacity .14s ease, transform .14s ease; }
+    body.is-navigating { opacity: 0; transform: translateY(4px); pointer-events: none; }
+    button, input, a { font: inherit; }
+    .topbar { height: 76px; background: #fff; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 34px 24px 48px; display: grid; gap: 24px; }
+    h1 { font-size: 32px; line-height: 1.1; font-weight: 800; }
+    h2 { font-size: 18px; font-weight: 800; }
+    .muted, .subtitle { color: #93a1ba; }
+    .subtitle { font-weight: 600; margin-top: 8px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .input { height: 42px; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #172033; padding: 0 12px; min-width: 170px; }
+    .btn { height: 42px; border: 1px solid #ef4444; border-radius: 8px; background: #fff; color: #ef4444; padding: 0 16px; font-weight: 800; cursor: pointer; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .link-btn { height: 42px; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #42526b; padding: 0 16px; font-weight: 800; display: inline-flex; align-items: center; text-decoration: none; }
+    .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; box-shadow: 0 4px 14px rgba(15, 23, 42, .08); overflow: hidden; }
+    .panel-head { min-height: 68px; padding: 20px 26px; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel-body { padding: 26px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat { min-height: 104px; border-radius: 8px; display: grid; place-items: center; gap: 4px; font-weight: 700; }
+    .stat strong { font-size: 34px; line-height: 1; }
+    .present { background: #e8fbf2; color: #047857; }
+    .absent { background: #fff0f0; color: #dc2626; }
+    .late { background: #fff8e7; color: #d97706; }
+    .leave { background: #edf2ff; color: #2457f5; }
+    .bar { height: 8px; background: #e5eaf2; border-radius: 999px; overflow: hidden; margin-top: 12px; }
+    .bar span { display: block; height: 100%; background: #2457f5; width: 0; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    th, td { padding: 16px 20px; border-bottom: 1px solid #dbe3ef; text-align: left; white-space: nowrap; }
+    th { color: #8ea0ba; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+    td { font-weight: 500; }
+    .status { display: inline-flex; height: 28px; align-items: center; border-radius: 999px; padding: 0 12px; font-weight: 800; text-transform: capitalize; }
+    .status.present { background: #e8fbf2; color: #047857; }
+    .status.absent { background: #fff0f0; color: #dc2626; }
+    .status.late { background: #fff8e7; color: #d97706; }
+    .status.on_leave { background: #edf2ff; color: #2457f5; }
+    .empty { color: #64748b; padding: 20px; text-align: center; }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 760px) {
+      .topbar { height: auto; padding: 18px; align-items: flex-start; gap: 14px; flex-direction: column; }
+      .top-actions { flex-wrap: wrap; }
+      .stat-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-role="staff" data-page="attendance-staff">
+  <header class="topbar">
+    <div>
+      <h2>HRPayroll</h2>
+      <p class="muted">Logged in as <strong id="userName">-</strong> · <span id="userRole">-</span></p>
+    </div>
+    <div class="top-actions">
+      <a class="link-btn" href="/staff/dashboard.html">Dashboard</a>
+      <button class="btn" id="logoutButton" type="button">Sign Out</button>
+    </div>
+  </header>
+  <main class="page">
+    <div class="toolbar">
+      <div>
+        <h1>My Attendance</h1>
+        <p class="subtitle">View your attendance record and history</p>
+      </div>
+      <input class="input" id="staffMonth" type="month" />
+    </div>
+    <section class="panel">
+      <div class="panel-head"><h2 id="staffSummaryTitle">Monthly Summary</h2></div>
+      <div class="panel-body">
+        <div class="stat-grid">
+          <div class="stat present"><strong id="staffPresentCount">0</strong><span>Present</span></div>
+          <div class="stat absent"><strong id="staffAbsentCount">0</strong><span>Absent</span></div>
+          <div class="stat late"><strong id="staffLateCount">0</strong><span>Late</span></div>
+          <div class="stat leave"><strong id="staffLeaveCount">0</strong><span>On Leave</span></div>
+        </div>
+        <p class="subtitle" style="margin-top:22px">Attendance Rate</p>
+        <div class="bar"><span id="staffAttendanceBar"></span></div>
+        <p id="staffAttendanceRate" style="text-align:right;margin-top:8px;font-weight:800;color:#059669">0%</p>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Attendance History</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Note</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="staffHistoryBody"><tr><td colspan="4">Loading attendance...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

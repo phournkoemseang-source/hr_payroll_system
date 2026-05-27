@@ -89,12 +89,18 @@ class DatabaseSetup {
         id         INT AUTO_INCREMENT PRIMARY KEY,
         user_id    INT NOT NULL,
         work_date  DATE NOT NULL,
-        status     ENUM('present','absent','late') NOT NULL DEFAULT 'present',
+        status     ENUM('present','absent','late','on_leave') NOT NULL DEFAULT 'present',
+        note       VARCHAR(255) NULL,
+        updated_by INT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_attendance_user_date (user_id, work_date),
         CONSTRAINT fk_attendance_records_user
           FOREIGN KEY (user_id) REFERENCES users(id)
-          ON DELETE CASCADE
+          ON DELETE CASCADE,
+        CONSTRAINT fk_attendance_updated_by
+          FOREIGN KEY (updated_by) REFERENCES users(id)
+          ON DELETE SET NULL
       )
     `);
 

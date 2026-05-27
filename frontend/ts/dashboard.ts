@@ -1,4 +1,5 @@
 type DashboardRole = "admin" | "staff";
+type AttendanceStatus = "present" | "absent" | "late" | "on_leave";
 
 interface DashboardUser {
   id?: number;
@@ -20,6 +21,69 @@ interface AttendanceDay {
   date: string;
   present: number;
   absent: number;
+}
+
+interface AttendanceEmployee {
+  id: number;
+  name: string;
+  email: string;
+  role: DashboardRole;
+  department: string;
+}
+
+interface AttendanceRecord {
+  id: number;
+  userId: number;
+  employeeName: string;
+  employeeEmail: string;
+  department: string;
+  attendanceDate: string;
+  status: AttendanceStatus;
+  note: string | null;
+  updatedAt: string;
+}
+
+interface AttendanceSummaryRow {
+  userId: number;
+  employeeName: string;
+  employeeEmail: string;
+  department: string;
+  present: number;
+  absent: number;
+  late: number;
+  onLeave: number;
+  totalMarked: number;
+  attendanceRate: number;
+}
+
+interface AttendanceDashboard {
+  date: string;
+  month: number;
+  year: number;
+  employees: AttendanceEmployee[];
+  dayRecords: AttendanceRecord[];
+  summary: AttendanceSummaryRow[];
+  departments: string[];
+  totals: {
+    present: number;
+    absent: number;
+    late: number;
+    onLeave: number;
+    attendanceRate: number;
+  };
+}
+
+interface StaffAttendanceHistory {
+  month: number;
+  year: number;
+  records: AttendanceRecord[];
+  totals: {
+    present: number;
+    absent: number;
+    late: number;
+    onLeave: number;
+    attendanceRate: number;
+  };
 }
 
 interface PendingLeaveRequest {
@@ -66,6 +130,7 @@ class DashboardPage {
   private readonly userName = this.getElement<HTMLElement>("userName");
   private readonly userRole = this.getElement<HTMLElement>("userRole");
   private readonly logoutButton = this.getElement<HTMLButtonElement>("logoutButton");
+  private readonly page = document.body.dataset.page || "dashboard";
 
   public init(): void {
     const expectedRole = document.body.dataset.role as DashboardRole;
@@ -82,6 +147,18 @@ class DashboardPage {
     this.setOptionalText("avatarInitial", user.name.charAt(0).toUpperCase());
     this.setOptionalText("dashboardDate", this.formatLongDate(new Date()));
     this.logoutButton.addEventListener("click", () => this.logout());
+    this.setupSmoothNavigation();
+
+    if (this.page === "attendance-admin") {
+      void this.initializeAdminAttendance();
+      return;
+    }
+
+    if (this.page === "attendance-staff") {
+      void this.initializeStaffAttendance();
+      return;
+    }
+
     void this.loadDashboard();
   }
 
@@ -234,6 +311,222 @@ class DashboardPage {
     this.setOptionalText("staffLatestPayroll", this.formatMoney(staff.latestPayroll));
   }
 
+  private async initializeAdminAttendance(): Promise<void> {
+    const dateInput = this.getElement<HTMLInputElement>("attendanceDate");
+    const monthInput = this.getElement<HTMLInputElement>("summaryMonth");
+    const departmentFilter = this.getElement<HTMLSelectElement>("departmentFilter");
+    const saveButton = this.getElement<HTMLButtonElement>("saveAttendance");
+    const exportButton = this.getElement<HTMLButtonElement>("exportAttendance");
+    const today = new Date();
+
+    dateInput.value = this.toDateInput(today);
+    monthInput.value = this.toMonthInput(today);
+    dateInput.addEventListener("change", () => void this.loadAdminAttendance());
+    monthInput.addEventListener("change", () => void this.loadAdminAttendance());
+    departmentFilter.addEventListener("change", () => void this.loadAdminAttendance());
+    saveButton.addEventListener("click", () => void this.saveAttendance());
+    exportButton.addEventListener("click", () => this.exportAttendanceSummary());
+
+    await this.loadAdminAttendance();
+  }
+
+  private async loadAdminAttendance(): Promise<void> {
+    const dateInput = this.getElement<HTMLInputElement>("attendanceDate");
+    const monthInput = this.getElement<HTMLInputElement>("summaryMonth");
+    const departmentFilter = this.getElement<HTMLSelectElement>("departmentFilter");
+    const [year, month] = monthInput.value.split("-").map(Number);
+    const params = new URLSearchParams({
+      date: dateInput.value,
+      month: String(month),
+      year: String(year),
+    });
+
+    if (departmentFilter.value) {
+      params.set("department", departmentFilter.value);
+    }
+
+    try {
+      const dashboard = await this.fetchJson<AttendanceDashboard>(`/api/attendance/admin/dashboard?${params}`);
+      this.renderDepartmentFilter(dashboard.departments, departmentFilter.value);
+      this.renderMarkList(dashboard);
+      this.renderAdminAttendanceTotals(dashboard);
+      this.renderAttendanceSummary(dashboard.summary);
+      this.setOptionalText("calendarTitle", `${this.monthName(month)} ${year} - Daily Attendance`);
+      this.setOptionalText("todayTitle", this.formatShortDate(dateInput.value));
+      this.setOptionalText("summaryTitle", `All Employee Attendance - ${this.monthName(month)} ${year}`);
+      this.setAttendanceAlert("", "");
+    } catch (err) {
+      this.setAttendanceAlert(err instanceof Error ? err.message : "Unable to load attendance.", "error");
+    }
+  }
+
+  private renderDepartmentFilter(departments: string[], selected: string): void {
+    const departmentFilter = this.getElement<HTMLSelectElement>("departmentFilter");
+    departmentFilter.innerHTML = [
+      '<option value="">All departments</option>',
+      ...departments.map((department) => `<option value="${this.escapeHtml(department)}">${this.escapeHtml(department)}</option>`),
+    ].join("");
+    departmentFilter.value = selected;
+  }
+
+  private renderMarkList(dashboard: AttendanceDashboard): void {
+    const markList = this.getElement<HTMLElement>("markList");
+    const statusByUser = new Map(dashboard.dayRecords.map((record) => [record.userId, record.status]));
+    const noteByUser = new Map(dashboard.dayRecords.map((record) => [record.userId, record.note || ""]));
+
+    if (dashboard.employees.length === 0) {
+      markList.innerHTML = '<p class="empty">No staff employees found.</p>';
+      return;
+    }
+
+    markList.innerHTML = "";
+    for (const employee of dashboard.employees) {
+      const row = document.createElement("div");
+      const selectedStatus = statusByUser.get(employee.id) || "present";
+      row.className = "mark-row";
+      row.innerHTML = `
+        <div class="employee">
+          <span class="mini">${this.getInitials(employee.name)}</span>
+          <div>
+            <strong>${this.escapeHtml(employee.name)}</strong>
+            <p class="muted">${this.escapeHtml(employee.department)} - ${this.escapeHtml(employee.email)}</p>
+          </div>
+        </div>
+        <select class="select attendance-status" data-user-id="${employee.id}" data-note="${this.escapeHtml(noteByUser.get(employee.id) || "")}">
+          ${this.statusOption("present", selectedStatus)}
+          ${this.statusOption("absent", selectedStatus)}
+          ${this.statusOption("late", selectedStatus)}
+          ${this.statusOption("on_leave", selectedStatus)}
+        </select>
+      `;
+      markList.appendChild(row);
+    }
+  }
+
+  private renderAdminAttendanceTotals(dashboard: AttendanceDashboard): void {
+    this.setOptionalText("presentCount", String(dashboard.totals.present));
+    this.setOptionalText("absentCount", String(dashboard.totals.absent));
+    this.setOptionalText("lateCount", String(dashboard.totals.late));
+    this.setOptionalText("leaveCount", String(dashboard.totals.onLeave));
+    this.setOptionalText("attendanceRate", `${dashboard.totals.attendanceRate}%`);
+    this.getElement<HTMLElement>("attendanceBar").style.width = `${dashboard.totals.attendanceRate}%`;
+  }
+
+  private renderAttendanceSummary(summary: AttendanceSummaryRow[]): void {
+    const body = this.getElement<HTMLTableSectionElement>("summaryBody");
+    if (summary.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" class="empty">No attendance records for this filter.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = summary
+      .map(
+        (row) => `
+          <tr>
+            <td><div class="employee"><span class="mini">${this.getInitials(row.employeeName)}</span>${this.escapeHtml(row.employeeName)}</div></td>
+            <td>${this.escapeHtml(row.department)}</td>
+            <td>${row.present}</td>
+            <td>${row.absent}</td>
+            <td>${row.late}</td>
+            <td>${row.onLeave}</td>
+            <td class="${row.attendanceRate >= 90 ? "rate-good" : "rate-warn"}">${row.attendanceRate}%</td>
+          </tr>
+        `,
+      )
+      .join("");
+  }
+
+  private async saveAttendance(): Promise<void> {
+    const saveButton = this.getElement<HTMLButtonElement>("saveAttendance");
+    const date = this.getElement<HTMLInputElement>("attendanceDate").value;
+    const records = Array.from(document.querySelectorAll<HTMLSelectElement>(".attendance-status")).map((select) => ({
+      userId: Number(select.dataset.userId),
+      status: select.value as AttendanceStatus,
+      note: select.dataset.note || "",
+    }));
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    try {
+      await this.fetchJson<{ message: string }>("/api/attendance/admin/mark", {
+        method: "POST",
+        body: JSON.stringify({ date, records }),
+      });
+      this.setAttendanceAlert("Attendance saved.", "success");
+      await this.loadAdminAttendance();
+    } catch (err) {
+      this.setAttendanceAlert(err instanceof Error ? err.message : "Unable to save attendance.", "error");
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Attendance";
+    }
+  }
+
+  private exportAttendanceSummary(): void {
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>("#summaryBody tr"));
+    const lines = [["Employee", "Department", "Present", "Absent", "Late", "On Leave", "Rate"]];
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll("td")).map((cell) => `"${cell.textContent?.trim().replace(/"/g, '""') || ""}"`);
+      if (cells.length === 7) {
+        lines.push(cells);
+      }
+    }
+
+    const blob = new Blob([lines.map((line) => line.join(",")).join("\n")], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `attendance-report-${this.getElement<HTMLInputElement>("summaryMonth").value}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  private async initializeStaffAttendance(): Promise<void> {
+    const monthInput = this.getElement<HTMLInputElement>("staffMonth");
+    monthInput.value = this.toMonthInput(new Date());
+    monthInput.addEventListener("change", () => void this.loadStaffAttendance());
+    await this.loadStaffAttendance();
+  }
+
+  private async loadStaffAttendance(): Promise<void> {
+    const monthInput = this.getElement<HTMLInputElement>("staffMonth");
+    const [year, month] = monthInput.value.split("-").map(Number);
+    try {
+      const history = await this.fetchJson<StaffAttendanceHistory>(`/api/attendance/staff/history?month=${month}&year=${year}`);
+      this.setOptionalText("staffSummaryTitle", `Monthly Summary - ${this.monthName(month)} ${year}`);
+      this.setOptionalText("staffPresentCount", String(history.totals.present));
+      this.setOptionalText("staffAbsentCount", String(history.totals.absent));
+      this.setOptionalText("staffLateCount", String(history.totals.late));
+      this.setOptionalText("staffLeaveCount", String(history.totals.onLeave));
+      this.setOptionalText("staffAttendanceRate", `${history.totals.attendanceRate}%`);
+      this.getElement<HTMLElement>("staffAttendanceBar").style.width = `${history.totals.attendanceRate}%`;
+      this.renderStaffAttendanceHistory(history.records);
+    } catch {
+      this.renderStaffAttendanceHistory([]);
+    }
+  }
+
+  private renderStaffAttendanceHistory(records: AttendanceRecord[]): void {
+    const body = this.getElement<HTMLTableSectionElement>("staffHistoryBody");
+    if (records.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="empty">No attendance records for this month yet.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = records
+      .map(
+        (record) => `
+          <tr>
+            <td>${this.formatShortDate(record.attendanceDate)}</td>
+            <td><span class="status ${record.status}">${record.status.replace("_", " ")}</span></td>
+            <td>${this.escapeHtml(record.note || "-")}</td>
+            <td>${this.formatDateTime(record.updatedAt)}</td>
+          </tr>
+        `,
+      )
+      .join("");
+  }
+
   private getStoredUser(): DashboardUser | null {
     const userJson = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!userJson) {
@@ -251,12 +544,87 @@ class DashboardPage {
     return localStorage.getItem("token") || sessionStorage.getItem("token");
   }
 
+  private async fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+    const token = this.getStoredToken();
+    if (!token) {
+      this.logout();
+      throw new Error("Authentication required");
+    }
+
+    const response = await fetch(url, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...init.headers,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      this.logout();
+      throw new Error("Authentication required");
+    }
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.message || "Request failed");
+    }
+
+    return data as T;
+  }
+
   private logout(): void {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
     window.location.href = "/login.html";
+  }
+
+  private setupSmoothNavigation(): void {
+    document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
+      link.addEventListener("pointerenter", () => this.prefetchPage(link.href), { once: true });
+      link.addEventListener("click", (event) => {
+        if (this.shouldSkipTransition(event, link)) {
+          return;
+        }
+
+        event.preventDefault();
+        document.body.classList.add("is-navigating");
+        window.setTimeout(() => {
+          window.location.href = link.href;
+        }, 140);
+      });
+    });
+  }
+
+  private shouldSkipTransition(event: MouseEvent, link: HTMLAnchorElement): boolean {
+    const url = new URL(link.href, window.location.href);
+    return (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      link.target === "_blank" ||
+      link.hasAttribute("download") ||
+      url.origin !== window.location.origin ||
+      url.href === window.location.href ||
+      url.hash.length > 0
+    );
+  }
+
+  private prefetchPage(href: string): void {
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin || document.querySelector(`link[rel="prefetch"][href="${url.href}"]`)) {
+      return;
+    }
+
+    const prefetch = document.createElement("link");
+    prefetch.rel = "prefetch";
+    prefetch.href = url.href;
+    document.head.appendChild(prefetch);
   }
 
   private formatRole(role: DashboardRole): string {
@@ -295,6 +663,33 @@ class DashboardPage {
     });
   }
 
+  private formatDateTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "-";
+    }
+
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  private toDateInput(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private toMonthInput(date: Date): string {
+    return date.toISOString().slice(0, 7);
+  }
+
+  private monthName(month: number): string {
+    return new Date(2000, month - 1, 1).toLocaleDateString("en-US", { month: "long" });
+  }
+
   private formatDateRange(startDate: string, endDate: string): string {
     const start = this.formatShortDate(startDate);
     const end = this.formatShortDate(endDate);
@@ -312,6 +707,21 @@ class DashboardPage {
 
   private capitalize(value: string): string {
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  private statusOption(status: AttendanceStatus, selected?: AttendanceStatus): string {
+    const label = this.capitalize(status.replace("_", " "));
+    return `<option value="${status}" ${selected === status ? "selected" : ""}>${label}</option>`;
+  }
+
+  private setAttendanceAlert(message: string, type: "" | "error" | "success"): void {
+    const alert = document.getElementById("attendanceAlert");
+    if (!alert) {
+      return;
+    }
+
+    alert.textContent = message;
+    alert.className = type ? `alert ${type}` : "alert";
   }
 
   private escapeHtml(value: string): string {

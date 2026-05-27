@@ -60,6 +60,7 @@ class EmployeesPage {
     this.userName.textContent = user.name;
     this.userRole.textContent = "Admin";
     this.avatarInitial.textContent = user.name.charAt(0).toUpperCase();
+    this.setupSmoothNavigation();
     this.bindEvents();
     void this.loadEmployees();
   }
@@ -428,6 +429,52 @@ class EmployeesPage {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
     window.location.href = "/login.html";
+  }
+
+  private setupSmoothNavigation(): void {
+    document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
+      link.addEventListener("pointerenter", () => this.prefetchPage(link.href), { once: true });
+      link.addEventListener("click", (event) => {
+        if (this.shouldSkipTransition(event, link)) {
+          return;
+        }
+
+        event.preventDefault();
+        document.body.classList.add("is-navigating");
+        window.setTimeout(() => {
+          window.location.href = link.href;
+        }, 140);
+      });
+    });
+  }
+
+  private shouldSkipTransition(event: MouseEvent, link: HTMLAnchorElement): boolean {
+    const url = new URL(link.href, window.location.href);
+    return (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      link.target === "_blank" ||
+      link.hasAttribute("download") ||
+      url.origin !== window.location.origin ||
+      url.href === window.location.href ||
+      url.hash.length > 0
+    );
+  }
+
+  private prefetchPage(href: string): void {
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin || document.querySelector(`link[rel="prefetch"][href="${url.href}"]`)) {
+      return;
+    }
+
+    const prefetch = document.createElement("link");
+    prefetch.rel = "prefetch";
+    prefetch.href = url.href;
+    document.head.appendChild(prefetch);
   }
 
   private getInitials(name: string): string {

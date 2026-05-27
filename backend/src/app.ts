@@ -5,6 +5,7 @@ import { envConfig } from "./config/env";
 import { AuthRoutes } from "./routes/AuthRoutes";
 import { DashboardRoutes } from "./routes/DashboardRoutes";
 import { EmployeeRoutes } from "./routes/EmployeeRoutes";
+import { AttendanceRoutes } from "./routes/AttendanceRoutes";
 
 class App {
   private readonly app: ExpressApplication;
@@ -34,9 +35,11 @@ class App {
     const authRoutes = new AuthRoutes();
     const dashboardRoutes = new DashboardRoutes();
     const employeeRoutes = new EmployeeRoutes();
+    const attendanceRoutes = new AttendanceRoutes();
     this.app.use("/api/auth", authRoutes.router);
     this.app.use("/api/dashboard", dashboardRoutes.router);
     this.app.use("/api/employees", employeeRoutes.router);
+    this.app.use("/api/attendance", attendanceRoutes.router);
   }
 
   private configureFrontendFallback(): void {
@@ -46,8 +49,17 @@ class App {
     this.app.get("/admin/employees.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/admin/employees.html"));
     });
+    this.app.get("/admin/attendanceTracking.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/admin/attendanceTracking.html"));
+    });
     this.app.get("/staff/dashboard.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/staff/dashboard.html"));
+    });
+    this.app.get("/staff/attendanceTracking.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/staff/attendanceTracking.html"));
+    });
+    this.app.get("/staff/attendanceTraking.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/staff/attendanceTracking.html"));
     });
     this.app.get("*", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/login.html"));
