@@ -11,7 +11,7 @@
     body { min-height: 100vh; font-family: Inter, sans-serif; background: #f6f8fc; color: #071126; overflow-x: hidden; transition: opacity .08s ease; }
     button, a { font: inherit; }
     .app { display: grid; grid-template-columns: 275px minmax(0, 1fr); min-height: 100vh; }
-    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; min-height: 100vh; border-right: 1px solid rgba(255,255,255,0.08); }
+    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; align-self: start; overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.08); }
     .brand { padding: 28px 24px 26px; display: flex; align-items: center; gap: 14px; }
     .brand-mark { width: 46px; height: 46px; border-radius: 8px; background: #2457f5; display: grid; place-items: center; font-size: 23px; font-weight: 800; color: #fff; }
     .brand-name { font-size: 18px; font-weight: 800; color: #fff; }
@@ -57,10 +57,10 @@
     svg { width: 21px; height: 21px; }
     @media (max-width: 1050px) {
       .app { grid-template-columns: 1fr; }
-      .sidebar { min-height: auto; }
+      .sidebar { height: auto; min-height: auto; position: relative; top: auto; overflow: visible; }
       .brand { padding: 22px 20px 18px; }
       .nav { grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; padding: 14px; }
-      .profile { display: none; }
+      .profile { display: flex; }
     }
     @media (max-width: 860px) {
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -106,7 +106,7 @@
         </div>
       </nav>
       <div class="profile">
-        <div class="avatar" id="userInitial">A</div>
+        <div class="avatar" id="avatarInitial">A</div>
         <div>
           <strong id="userName">-</strong>
           <span id="userRole">-</span>

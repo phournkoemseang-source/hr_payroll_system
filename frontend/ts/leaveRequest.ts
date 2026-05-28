@@ -38,8 +38,9 @@ class LeaveRequestPage {
     }
 
     this.setText("userName", this.user.name);
-    this.setText("userRole", this.user.role);
+    this.setText("userRole", this.label(this.user.role));
     this.setText("userInitial", this.initials(this.user.name));
+    this.setText("avatarInitial", this.initials(this.user.name));
     this.getOptional<HTMLButtonElement>("logoutButton")?.addEventListener("click", () => this.logout());
 
     if (this.role === "admin") {

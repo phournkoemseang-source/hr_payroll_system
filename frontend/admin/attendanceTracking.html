@@ -13,7 +13,7 @@
     button, input, select { font: inherit; }
     button { cursor: pointer; }
     .app { min-height: 100vh; display: grid; grid-template-columns: 275px minmax(0, 1fr); }
-    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; min-height: 100vh; border-right: 1px solid rgba(255,255,255,0.08); }
+    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; align-self: start; overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.08); }
     .brand { padding: 28px 24px 26px; display: flex; align-items: center; gap: 14px; }
     .brand-mark { width: 46px; height: 46px; border-radius: 8px; background: #2457f5; display: grid; place-items: center; font-size: 23px; font-weight: 800; }
     .brand-name { font-size: 18px; font-weight: 800; }
@@ -74,10 +74,10 @@
     svg { width: 21px; height: 21px; }
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
-      .sidebar { min-height: auto; }
+      .sidebar { height: auto; min-height: auto; position: relative; top: auto; overflow: visible; }
       .brand { padding: 22px 20px 18px; }
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
-      .profile { display: none; }
+      .profile { display: flex; }
       .topbar { padding: 0 24px; }
       .page { padding: 28px 24px; }
       .grid { grid-template-columns: 1fr; }
