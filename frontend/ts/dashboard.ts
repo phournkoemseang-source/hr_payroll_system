@@ -137,7 +137,7 @@ class DashboardPage {
     const user = this.getStoredUser();
 
     if (!user || user.role !== expectedRole) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -147,7 +147,9 @@ class DashboardPage {
     this.setOptionalText("avatarInitial", user.name.charAt(0).toUpperCase());
     this.setOptionalText("dashboardDate", this.formatLongDate(new Date()));
     this.logoutButton.addEventListener("click", () => this.logout());
-    this.setupSmoothNavigation();
+    if (this.page !== "dashboard") {
+      void this.loadPendingLeaveBadge();
+    }
 
     if (this.page === "attendance-admin") {
       void this.initializeAdminAttendance();
@@ -165,7 +167,7 @@ class DashboardPage {
   private async loadDashboard(): Promise<void> {
     const token = this.getStoredToken();
     if (!token) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -309,6 +311,19 @@ class DashboardPage {
     );
     this.setOptionalText("staffPendingLeaves", String(staff.pendingLeaveRequests));
     this.setOptionalText("staffLatestPayroll", this.formatMoney(staff.latestPayroll));
+  }
+
+  private async loadPendingLeaveBadge(): Promise<void> {
+    if (document.body.dataset.role !== "admin" || !document.getElementById("leaveCountBadge")) {
+      return;
+    }
+
+    try {
+      const data = await this.fetchJson<DashboardResponse>("/api/dashboard");
+      this.setOptionalText("leaveCountBadge", String(data.stats.pendingLeaveRequests));
+    } catch {
+      this.setOptionalText("leaveCountBadge", "0");
+    }
   }
 
   private async initializeAdminAttendance(): Promise<void> {
@@ -578,53 +593,7 @@ class DashboardPage {
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
-    window.location.href = "/login.html";
-  }
-
-  private setupSmoothNavigation(): void {
-    document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
-      link.addEventListener("pointerenter", () => this.prefetchPage(link.href), { once: true });
-      link.addEventListener("click", (event) => {
-        if (this.shouldSkipTransition(event, link)) {
-          return;
-        }
-
-        event.preventDefault();
-        document.body.classList.add("is-navigating");
-        window.setTimeout(() => {
-          window.location.href = link.href;
-        }, 140);
-      });
-    });
-  }
-
-  private shouldSkipTransition(event: MouseEvent, link: HTMLAnchorElement): boolean {
-    const url = new URL(link.href, window.location.href);
-    return (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey ||
-      link.target === "_blank" ||
-      link.hasAttribute("download") ||
-      url.origin !== window.location.origin ||
-      url.href === window.location.href ||
-      url.hash.length > 0
-    );
-  }
-
-  private prefetchPage(href: string): void {
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || document.querySelector(`link[rel="prefetch"][href="${url.href}"]`)) {
-      return;
-    }
-
-    const prefetch = document.createElement("link");
-    prefetch.rel = "prefetch";
-    prefetch.href = url.href;
-    document.head.appendChild(prefetch);
+    window.pageTransitions.navigate("/login.html", "Signing out");
   }
 
   private formatRole(role: DashboardRole): string {

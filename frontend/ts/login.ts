@@ -51,8 +51,10 @@ class LoginPage {
       return;
     }
 
-    window.location.href =
-      user.role === "admin" ? "/admin/dashboard.html" : "/staff/dashboard.html";
+    window.pageTransitions.replace(
+      user.role === "admin" ? "/admin/dashboard.html" : "/staff/dashboard.html",
+      "Opening workspace",
+    );
   }
 
   private getStoredUser(): LoginUser | null {
@@ -125,12 +127,16 @@ class LoginPage {
       }
 
       this.persistSession(data, email);
-      window.location.href =
-        data.user.role === "admin" ? "/admin/dashboard.html" : "/staff/dashboard.html";
+      window.pageTransitions.navigate(
+        data.user.role === "admin" ? "/admin/dashboard.html" : "/staff/dashboard.html",
+        "Opening workspace",
+      );
     } catch {
       this.showError("Unable to connect to server. Please try again.");
     } finally {
-      this.setLoading(false);
+      if (!this.isRedirecting()) {
+        this.setLoading(false);
+      }
     }
   }
 
@@ -150,6 +156,10 @@ class LoginPage {
     this.loginBtn.disabled = state;
     this.btnText.style.display = state ? "none" : "flex";
     this.btnLoader.style.display = state ? "flex" : "none";
+  }
+
+  private isRedirecting(): boolean {
+    return document.body.classList.contains("is-navigating");
   }
 
   private showError(message: string): void {

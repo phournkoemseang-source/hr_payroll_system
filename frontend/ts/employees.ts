@@ -53,15 +53,15 @@ class EmployeesPage {
   public init(): void {
     const user = this.getStoredUser();
     if (!user || user.role !== "admin") {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
     this.userName.textContent = user.name;
     this.userRole.textContent = "Admin";
     this.avatarInitial.textContent = user.name.charAt(0).toUpperCase();
-    this.setupSmoothNavigation();
     this.bindEvents();
+    void this.loadPendingLeaveBadge();
     void this.loadEmployees();
   }
 
@@ -85,7 +85,7 @@ class EmployeesPage {
   private async loadEmployees(): Promise<void> {
     const token = this.getStoredToken();
     if (!token) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -117,7 +117,7 @@ class EmployeesPage {
 
     const token = this.getStoredToken();
     if (!token) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -208,7 +208,7 @@ class EmployeesPage {
   private async saveEmployee(employee: Employee): Promise<void> {
     const token = this.getStoredToken();
     if (!token) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -243,7 +243,7 @@ class EmployeesPage {
 
     const token = this.getStoredToken();
     if (!token) {
-      window.location.href = "/login.html";
+      window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
@@ -428,53 +428,30 @@ class EmployeesPage {
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
-    window.location.href = "/login.html";
+    window.pageTransitions.navigate("/login.html", "Signing out");
   }
 
-  private setupSmoothNavigation(): void {
-    document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
-      link.addEventListener("pointerenter", () => this.prefetchPage(link.href), { once: true });
-      link.addEventListener("click", (event) => {
-        if (this.shouldSkipTransition(event, link)) {
-          return;
-        }
-
-        event.preventDefault();
-        document.body.classList.add("is-navigating");
-        window.setTimeout(() => {
-          window.location.href = link.href;
-        }, 140);
-      });
-    });
-  }
-
-  private shouldSkipTransition(event: MouseEvent, link: HTMLAnchorElement): boolean {
-    const url = new URL(link.href, window.location.href);
-    return (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey ||
-      link.target === "_blank" ||
-      link.hasAttribute("download") ||
-      url.origin !== window.location.origin ||
-      url.href === window.location.href ||
-      url.hash.length > 0
-    );
-  }
-
-  private prefetchPage(href: string): void {
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || document.querySelector(`link[rel="prefetch"][href="${url.href}"]`)) {
+  private async loadPendingLeaveBadge(): Promise<void> {
+    const badge = document.getElementById("leaveCountBadge");
+    if (!badge) {
       return;
     }
 
-    const prefetch = document.createElement("link");
-    prefetch.rel = "prefetch";
-    prefetch.href = url.href;
-    document.head.appendChild(prefetch);
+    const token = this.getStoredToken();
+    if (!token) {
+      badge.textContent = "0";
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/dashboard", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await response.json()) as { stats?: { pendingLeaveRequests?: number } };
+      badge.textContent = response.ok ? String(data.stats?.pendingLeaveRequests || 0) : "0";
+    } catch {
+      badge.textContent = "0";
+    }
   }
 
   private getInitials(name: string): string {

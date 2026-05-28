@@ -8,8 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f6f8fb; color: #111827; animation: pageIn .16s ease-out both; transition: opacity .14s ease, transform .14s ease; }
-    body.is-navigating { opacity: 0; transform: translateY(4px); pointer-events: none; }
+    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f6f8fb; color: #111827; transition: opacity .08s ease; }
+    body.is-navigating { opacity: 0.99; pointer-events: none; }
     button, input, a { font: inherit; }
     .topbar { height: 76px; background: #fff; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
     .page { max-width: 1180px; margin: 0 auto; padding: 34px 24px 48px; display: grid; gap: 24px; }
@@ -45,10 +45,6 @@
     .status.late { background: #fff8e7; color: #d97706; }
     .status.on_leave { background: #edf2ff; color: #2457f5; }
     .empty { color: #64748b; padding: 20px; text-align: center; }
-    @keyframes pageIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     @media (max-width: 760px) {
       .topbar { height: auto; padding: 18px; align-items: flex-start; gap: 14px; flex-direction: column; }
       .top-actions { flex-wrap: wrap; }
@@ -106,6 +102,7 @@
       </div>
     </section>
   </main>
+  <script src="/js/pageTransitions.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

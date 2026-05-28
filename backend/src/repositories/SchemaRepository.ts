@@ -71,16 +71,28 @@ export abstract class SchemaRepository extends BaseRepository {
       CREATE TABLE IF NOT EXISTS leave_requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
-        leave_type VARCHAR(60) NOT NULL,
+        leave_type ENUM('annual','sick','personal','unpaid','maternity','paternity') NOT NULL,
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
-        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        total_days INT NOT NULL DEFAULT 1,
+        reason VARCHAR(500) NOT NULL DEFAULT '',
+        status ENUM('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending',
+        reviewer_id INT NULL,
+        reviewer_note VARCHAR(500) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_leave_user_created (user_id, created_at),
+        INDEX idx_leave_status_created (status, created_at),
         CONSTRAINT fk_leave_requests_user
           FOREIGN KEY (user_id) REFERENCES users(id)
-          ON DELETE CASCADE
+          ON DELETE CASCADE,
+        CONSTRAINT fk_leave_requests_reviewer
+          FOREIGN KEY (reviewer_id) REFERENCES users(id)
+          ON DELETE SET NULL
       )
     `);
+
+    await this.ensureLeaveRequestColumns();
 
     await this.execute(`
       CREATE TABLE IF NOT EXISTS payroll_records (
@@ -127,6 +139,65 @@ export abstract class SchemaRepository extends BaseRepository {
       "ALTER TABLE attendance_records ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
     );
     await this.execute("ALTER TABLE attendance_records MODIFY status ENUM('present','absent','late','on_leave') NOT NULL DEFAULT 'present'");
+  }
+
+  protected async ensureLeaveRequestSchema(): Promise<void> {
+    await this.ensureHrSchema();
+    await this.ensureLeaveRequestColumns();
+  }
+
+  private async ensureLeaveRequestColumns(): Promise<void> {
+    await this.ensureLeaveRequestColumn(
+      "total_days",
+      "ALTER TABLE leave_requests ADD COLUMN total_days INT NOT NULL DEFAULT 1 AFTER end_date",
+    );
+    await this.ensureLeaveRequestColumn(
+      "reason",
+      "ALTER TABLE leave_requests ADD COLUMN reason VARCHAR(500) NOT NULL DEFAULT '' AFTER total_days",
+    );
+    await this.ensureLeaveRequestColumn(
+      "reviewer_id",
+      "ALTER TABLE leave_requests ADD COLUMN reviewer_id INT NULL AFTER status",
+    );
+    await this.ensureLeaveRequestColumn(
+      "reviewer_note",
+      "ALTER TABLE leave_requests ADD COLUMN reviewer_note VARCHAR(500) NULL AFTER reviewer_id",
+    );
+    await this.ensureLeaveRequestColumn(
+      "updated_at",
+      "ALTER TABLE leave_requests ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+    );
+    await this.execute(`
+      UPDATE leave_requests
+      SET leave_type = CASE
+        WHEN LOWER(leave_type) LIKE '%annual%' THEN 'annual'
+        WHEN LOWER(leave_type) LIKE '%sick%' THEN 'sick'
+        WHEN LOWER(leave_type) LIKE '%unpaid%' THEN 'unpaid'
+        WHEN LOWER(leave_type) LIKE '%maternity%' THEN 'maternity'
+        WHEN LOWER(leave_type) LIKE '%paternity%' THEN 'paternity'
+        WHEN LOWER(leave_type) IN ('annual','sick','personal','unpaid','maternity','paternity') THEN LOWER(leave_type)
+        ELSE 'personal'
+      END
+    `);
+    await this.execute(
+      "ALTER TABLE leave_requests MODIFY status ENUM('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending'",
+    );
+    await this.execute(
+      "ALTER TABLE leave_requests MODIFY leave_type ENUM('annual','sick','personal','unpaid','maternity','paternity') NOT NULL",
+    );
+    await this.execute(`
+      UPDATE leave_requests
+      SET total_days = GREATEST(DATEDIFF(end_date, start_date) + 1, 1)
+      WHERE total_days IS NULL OR total_days < 1
+    `);
+  }
+
+  private async ensureLeaveRequestColumn(column: string, sql: string): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM leave_requests LIKE ?", [column]);
+
+    if (rows.length === 0) {
+      await this.execute(sql);
+    }
   }
 
   private async ensureAttendanceColumn(column: string, sql: string): Promise<void> {

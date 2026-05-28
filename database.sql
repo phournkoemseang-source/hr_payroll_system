@@ -48,14 +48,24 @@ CREATE TABLE IF NOT EXISTS attendance_records (
 CREATE TABLE IF NOT EXISTS leave_requests (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id    INT NOT NULL,
-  leave_type VARCHAR(60) NOT NULL,
+  leave_type ENUM('annual','sick','personal','unpaid','maternity','paternity') NOT NULL,
   start_date DATE NOT NULL,
   end_date   DATE NOT NULL,
-  status     ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  total_days INT NOT NULL DEFAULT 1,
+  reason     VARCHAR(500) NOT NULL DEFAULT '',
+  status     ENUM('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending',
+  reviewer_id INT NULL,
+  reviewer_note VARCHAR(500) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_leave_user_created (user_id, created_at),
+  INDEX idx_leave_status_created (status, created_at),
   CONSTRAINT fk_leave_requests_user
     FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_leave_requests_reviewer
+    FOREIGN KEY (reviewer_id) REFERENCES users(id)
+    ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS payroll_records (
