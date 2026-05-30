@@ -72,10 +72,32 @@ CREATE TABLE IF NOT EXISTS payroll_records (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id    INT NOT NULL,
   pay_period DATE NOT NULL,
+  base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+  allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
   gross_pay  DECIMAL(12,2) NOT NULL DEFAULT 0,
+  net_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
   status     ENUM('draft','paid') NOT NULL DEFAULT 'draft',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_payroll_user_period (user_id, pay_period),
   CONSTRAINT fk_payroll_records_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payroll_settings (
+  id                       INT AUTO_INCREMENT PRIMARY KEY,
+  user_id                  INT NOT NULL UNIQUE,
+  base_salary              DECIMAL(12,2) NOT NULL DEFAULT 0,
+  housing_allowance        DECIMAL(12,2) NOT NULL DEFAULT 0,
+  transport_allowance      DECIMAL(12,2) NOT NULL DEFAULT 0,
+  other_allowances         DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deduction_per_absent_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deduction_per_late_day   DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deduction_per_half_day   DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payroll_settings_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
 );

@@ -99,14 +99,84 @@ export abstract class SchemaRepository extends BaseRepository {
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         pay_period DATE NOT NULL,
+        base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+        allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
         gross_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
+        net_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
         status ENUM('draft','paid') NOT NULL DEFAULT 'draft',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_payroll_user_period (user_id, pay_period),
         CONSTRAINT fk_payroll_records_user
           FOREIGN KEY (user_id) REFERENCES users(id)
           ON DELETE CASCADE
       )
     `);
+
+    await this.ensurePayrollRecordColumn("base_salary", "ALTER TABLE payroll_records ADD COLUMN base_salary DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER pay_period");
+    await this.ensurePayrollRecordColumn("allowances", "ALTER TABLE payroll_records ADD COLUMN allowances DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER base_salary");
+    await this.ensurePayrollRecordColumn("deductions", "ALTER TABLE payroll_records ADD COLUMN deductions DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER allowances");
+    await this.ensurePayrollRecordColumn("net_pay", "ALTER TABLE payroll_records ADD COLUMN net_pay DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER gross_pay");
+    await this.ensurePayrollUniqueKey();
+    await this.ensurePayrollSettingsSchema();
+  }
+
+  protected async ensurePayrollSettingsSchema(): Promise<void> {
+    await this.ensureEmployeeProfileSchema();
+    await this.resetLegacyPayrollSettingsSchema();
+
+    await this.execute(`
+      CREATE TABLE IF NOT EXISTS payroll_settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+        housing_allowance DECIMAL(12,2) NOT NULL DEFAULT 0,
+        transport_allowance DECIMAL(12,2) NOT NULL DEFAULT 0,
+        other_allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_absent_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_late_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_half_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_payroll_settings_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE
+      )
+    `);
+
+    await this.ensurePayrollSettingsColumn(
+      "user_id",
+      "ALTER TABLE payroll_settings ADD COLUMN user_id INT NULL AFTER id",
+    );
+    await this.execute(`
+      UPDATE payroll_settings
+      SET user_id = COALESCE(user_id, employee_id)
+      WHERE user_id IS NULL
+    `).catch(() => undefined);
+    await this.ensurePayrollSettingsColumn(
+      "housing_allowance",
+      "ALTER TABLE payroll_settings ADD COLUMN housing_allowance DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
+    await this.ensurePayrollSettingsColumn(
+      "transport_allowance",
+      "ALTER TABLE payroll_settings ADD COLUMN transport_allowance DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
+    await this.ensurePayrollSettingsColumn(
+      "other_allowances",
+      "ALTER TABLE payroll_settings ADD COLUMN other_allowances DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
+    await this.ensurePayrollSettingsColumn(
+      "deduction_per_absent_day",
+      "ALTER TABLE payroll_settings ADD COLUMN deduction_per_absent_day DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
+    await this.ensurePayrollSettingsColumn(
+      "deduction_per_late_day",
+      "ALTER TABLE payroll_settings ADD COLUMN deduction_per_late_day DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
+    await this.ensurePayrollSettingsColumn(
+      "deduction_per_half_day",
+      "ALTER TABLE payroll_settings ADD COLUMN deduction_per_half_day DECIMAL(12,2) NOT NULL DEFAULT 0",
+    );
   }
 
   protected async ensureAttendanceSchema(): Promise<void> {
@@ -205,6 +275,40 @@ export abstract class SchemaRepository extends BaseRepository {
 
     if (rows.length === 0) {
       await this.execute(sql);
+    }
+  }
+
+  private async ensurePayrollRecordColumn(column: string, sql: string): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM payroll_records LIKE ?", [column]);
+
+    if (rows.length === 0) {
+      await this.execute(sql);
+    }
+  }
+
+  private async ensurePayrollSettingsColumn(column: string, sql: string): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM payroll_settings LIKE ?", [column]);
+
+    if (rows.length === 0) {
+      await this.execute(sql);
+    }
+  }
+
+  private async resetLegacyPayrollSettingsSchema(): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM payroll_settings LIKE 'employee_id'").catch(() => []);
+
+    if (rows.length > 0) {
+      await this.execute("DROP TABLE payroll_settings");
+    }
+  }
+
+  private async ensurePayrollUniqueKey(): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>(
+      "SHOW INDEX FROM payroll_records WHERE Key_name = 'uniq_payroll_user_period'",
+    );
+
+    if (rows.length === 0) {
+      await this.execute("ALTER TABLE payroll_records ADD UNIQUE KEY uniq_payroll_user_period (user_id, pay_period)");
     }
   }
 

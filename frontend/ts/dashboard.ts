@@ -147,6 +147,9 @@ class DashboardPage {
     this.setOptionalText("avatarInitial", user.name.charAt(0).toUpperCase());
     this.setOptionalText("dashboardDate", this.formatLongDate(new Date()));
     this.logoutButton.addEventListener("click", () => this.logout());
+    document.getElementById("runPayrollButton")?.addEventListener("click", () => {
+      window.pageTransitions.navigate("/admin/payroll.html", "Opening payroll");
+    });
     if (this.page !== "dashboard") {
       void this.loadPendingLeaveBadge();
     }

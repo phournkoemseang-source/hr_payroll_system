@@ -73,7 +73,7 @@ export class DashboardRepository extends SchemaRepository {
 
   public async getTotalPayroll(): Promise<number> {
     const rows = await this.query<PayrollRow[]>(`
-      SELECT COALESCE(SUM(pr.gross_pay), SUM(ep.base_salary), 0) AS total
+      SELECT COALESCE(SUM(NULLIF(pr.net_pay, 0)), SUM(pr.gross_pay), SUM(ep.base_salary), 0) AS total
       FROM users u
       INNER JOIN employee_profiles ep ON ep.user_id = u.id
       LEFT JOIN payroll_records pr
@@ -209,7 +209,7 @@ export class DashboardRepository extends SchemaRepository {
   public async getLatestPayrollByUser(userId: number): Promise<number> {
     const rows = await this.query<PayrollRow[]>(
       `
-        SELECT gross_pay AS total
+        SELECT COALESCE(NULLIF(net_pay, 0), gross_pay) AS total
         FROM payroll_records
         WHERE user_id = ?
         ORDER BY pay_period DESC, id DESC

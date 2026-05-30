@@ -7,6 +7,7 @@ import { DashboardRoutes } from "./routes/DashboardRoutes";
 import { EmployeeRoutes } from "./routes/EmployeeRoutes";
 import { AttendanceRoutes } from "./routes/AttendanceRoutes";
 import { LeaveRequestRoutes } from "./routes/LeaveRequestRoutes";
+import { PayrollRoutes } from "./routes/PayrollRoutes";
 
 class App {
   private readonly app: ExpressApplication;
@@ -38,11 +39,13 @@ class App {
     const employeeRoutes = new EmployeeRoutes();
     const attendanceRoutes = new AttendanceRoutes();
     const leaveRequestRoutes = new LeaveRequestRoutes();
+    const payrollRoutes = new PayrollRoutes();
     this.app.use("/api/auth", authRoutes.router);
     this.app.use("/api/dashboard", dashboardRoutes.router);
     this.app.use("/api/employees", employeeRoutes.router);
     this.app.use("/api/attendance", attendanceRoutes.router);
     this.app.use("/api/leave-requests", leaveRequestRoutes.router);
+    this.app.use("/api/payroll", payrollRoutes.router);
   }
 
   private configureFrontendFallback(): void {
@@ -57,6 +60,9 @@ class App {
     });
     this.app.get("/admin/leaveRequest.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/admin/leaveRequest.html"));
+    });
+    this.app.get("/admin/payroll.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/admin/payroll.html"));
     });
     this.app.get("/staff/dashboard.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/staff/dashboard.html"));
