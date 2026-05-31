@@ -26,6 +26,7 @@ export interface CreateUserRequest {
   position?: string;
   salary?: string | number;
   startDate?: string;
+  loginPassword?: string;
 }
 
 export interface ErrorResponse {

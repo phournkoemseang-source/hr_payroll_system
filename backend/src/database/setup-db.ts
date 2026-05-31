@@ -48,6 +48,7 @@ class DatabaseSetup {
   private async createTables(db: mysql.Connection): Promise<void> {
     // Drop existing tables to ensure clean schema
     await db.query("DROP TABLE IF EXISTS payroll_records");
+    await db.query("DROP TABLE IF EXISTS payroll_settings");
     await db.query("DROP TABLE IF EXISTS leave_requests");
     await db.query("DROP TABLE IF EXISTS attendance_records");
     await db.query("DROP TABLE IF EXISTS employee_profiles");
@@ -136,10 +137,35 @@ class DatabaseSetup {
         id         INT AUTO_INCREMENT PRIMARY KEY,
         user_id    INT NOT NULL,
         pay_period DATE NOT NULL,
+        base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+        allowances DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deductions DECIMAL(12,2) NOT NULL DEFAULT 0,
         gross_pay  DECIMAL(12,2) NOT NULL DEFAULT 0,
+        net_pay DECIMAL(12,2) NOT NULL DEFAULT 0,
         status     ENUM('draft','paid') NOT NULL DEFAULT 'draft',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_payroll_user_period (user_id, pay_period),
         CONSTRAINT fk_payroll_records_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE
+      )
+    `);
+
+    // Payroll settings table
+    await db.query(`
+      CREATE TABLE payroll_settings (
+        id                       INT AUTO_INCREMENT PRIMARY KEY,
+        user_id                  INT NOT NULL UNIQUE,
+        base_salary              DECIMAL(12,2) NOT NULL DEFAULT 0,
+        housing_allowance        DECIMAL(12,2) NOT NULL DEFAULT 0,
+        transport_allowance      DECIMAL(12,2) NOT NULL DEFAULT 0,
+        other_allowances         DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_absent_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_late_day   DECIMAL(12,2) NOT NULL DEFAULT 0,
+        deduction_per_half_day   DECIMAL(12,2) NOT NULL DEFAULT 0,
+        created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_payroll_settings_user
           FOREIGN KEY (user_id) REFERENCES users(id)
           ON DELETE CASCADE
       )
@@ -170,6 +196,14 @@ class DatabaseSetup {
       `INSERT IGNORE INTO employee_profiles (user_id, department, position, start_date, base_salary, status) VALUES
         (1, 'HR', 'Administrator', CURDATE(), 0, 'active'),
         (2, 'Operations', 'Staff', CURDATE(), 500, 'active')`,
+    );
+
+    await db.query(
+      `INSERT IGNORE INTO payroll_settings
+        (user_id, base_salary, housing_allowance, transport_allowance, other_allowances,
+         deduction_per_absent_day, deduction_per_late_day, deduction_per_half_day)
+       VALUES
+        (2, 500, 0, 0, 0, 0, 0, 0)`,
     );
 
     // Insert sample attendance records for the current week
@@ -206,11 +240,11 @@ class DatabaseSetup {
     // Insert sample payroll records
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     await db.query(
-      `INSERT IGNORE INTO payroll_records (user_id, pay_period, gross_pay, status) VALUES
-        (1, ?, 0, 'paid'),
-        (2, ?, 500, 'paid')`,
+      `INSERT IGNORE INTO payroll_records
+        (user_id, pay_period, base_salary, allowances, deductions, gross_pay, net_pay, status)
+       VALUES
+        (2, ?, 500, 0, 0, 500, 500, 'paid')`,
       [
-        firstOfMonth.toISOString().slice(0, 10),
         firstOfMonth.toISOString().slice(0, 10),
       ],
     );

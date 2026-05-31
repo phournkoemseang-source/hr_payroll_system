@@ -119,5 +119,20 @@ SELECT id,
   CASE WHEN role = 'admin' THEN 'HR' ELSE 'Operations' END,
   CASE WHEN role = 'admin' THEN 'Administrator' ELSE 'Staff' END,
   DATE(created_at),
-  0
+  CASE WHEN role = 'staff' THEN 500 ELSE 0 END
 FROM users;
+
+INSERT INTO payroll_settings
+  (user_id, base_salary, housing_allowance, transport_allowance, other_allowances,
+   deduction_per_absent_day, deduction_per_late_day, deduction_per_half_day)
+SELECT id, 500, 0, 0, 0, 0, 0, 0
+FROM users
+WHERE role = 'staff'
+ON DUPLICATE KEY UPDATE
+  base_salary = VALUES(base_salary),
+  housing_allowance = VALUES(housing_allowance),
+  transport_allowance = VALUES(transport_allowance),
+  other_allowances = VALUES(other_allowances),
+  deduction_per_absent_day = VALUES(deduction_per_absent_day),
+  deduction_per_late_day = VALUES(deduction_per_late_day),
+  deduction_per_half_day = VALUES(deduction_per_half_day);

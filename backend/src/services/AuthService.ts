@@ -37,10 +37,11 @@ export class AuthService {
       email: data.email.trim().toLowerCase(),
       name: data.name.trim(),
       password: hashedPassword,
+      loginPassword: data.role === "staff" ? data.password : undefined,
     });
   }
 
   public async emailExists(email: string): Promise<boolean> {
-    return Boolean(await this.userRepository.findByEmail(email));
+    return Boolean(await this.userRepository.findByEmail(email.trim().toLowerCase()));
   }
 }

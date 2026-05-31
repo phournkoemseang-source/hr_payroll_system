@@ -24,8 +24,14 @@ export class UserRepository extends SchemaRepository {
     await this.ensureEmployeeProfileSchema();
 
     const result = await this.execute(
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-      [data.name, data.email, data.password, data.role],
+      "INSERT INTO users (name, email, password, login_password, role) VALUES (?, ?, ?, ?, ?)",
+      [
+        data.name,
+        data.email,
+        data.password,
+        data.role === "staff" ? data.loginPassword || null : null,
+        data.role,
+      ],
     );
 
     await this.createEmployeeProfile(result.insertId, data);

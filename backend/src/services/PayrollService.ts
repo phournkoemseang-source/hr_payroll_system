@@ -8,7 +8,11 @@ export class PayrollService {
     return this.payrollRepository.findSettings(userId);
   }
 
-  public saveSettings(userId: number, input: PayrollSettingsInput) {
+  public async saveSettings(userId: number, input: PayrollSettingsInput) {
+    if (!(await this.payrollRepository.staffExists(userId))) {
+      return null;
+    }
+
     return this.payrollRepository.saveSettings(userId, this.normalizeSettings(input));
   }
 

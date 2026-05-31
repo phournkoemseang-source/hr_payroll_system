@@ -38,6 +38,11 @@ export class PayrollController extends BaseController {
         userId,
         req.body as PayrollSettingsInput,
       );
+      if (!settings) {
+        this.sendError(res, 404, "Staff employee not found");
+        return;
+      }
+
       res.json({ settings });
     });
   }

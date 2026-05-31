@@ -23,6 +23,21 @@ export class PayrollRepository extends SchemaRepository {
     await this.ensureHrSchema();
   }
 
+  public async staffExists(userId: number): Promise<boolean> {
+    await this.ensureSchema();
+    const rows = await this.query<RowDataPacket[]>(
+      `
+        SELECT u.id
+        FROM users u
+        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        WHERE u.id = ? AND u.role = 'staff'
+        LIMIT 1
+      `,
+      [userId],
+    );
+    return rows.length > 0;
+  }
+
   public async findSettings(userId: number): Promise<PayrollSettings | null> {
     await this.ensureSchema();
     const rows = await this.query<RowDataPacket[]>(
@@ -34,32 +49,39 @@ export class PayrollRepository extends SchemaRepository {
 
   public async saveSettings(userId: number, input: PayrollSettingsInput): Promise<PayrollSettings> {
     await this.ensureSchema();
-    await this.execute(
-      `
-        INSERT INTO payroll_settings
-          (user_id, base_salary, housing_allowance, transport_allowance, other_allowances,
-           deduction_per_absent_day, deduction_per_late_day, deduction_per_half_day)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          base_salary = VALUES(base_salary),
-          housing_allowance = VALUES(housing_allowance),
-          transport_allowance = VALUES(transport_allowance),
-          other_allowances = VALUES(other_allowances),
-          deduction_per_absent_day = VALUES(deduction_per_absent_day),
-          deduction_per_late_day = VALUES(deduction_per_late_day),
-          deduction_per_half_day = VALUES(deduction_per_half_day)
-      `,
-      [
-        userId,
-        input.base_salary,
-        input.housing_allowance,
-        input.transport_allowance,
-        input.other_allowances,
-        input.deduction_per_absent_day,
-        input.deduction_per_late_day,
-        input.deduction_per_half_day,
-      ],
-    );
+    await this.transaction(async (connection) => {
+      await connection.execute(
+        `
+          INSERT INTO payroll_settings
+            (user_id, base_salary, housing_allowance, transport_allowance, other_allowances,
+             deduction_per_absent_day, deduction_per_late_day, deduction_per_half_day)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            base_salary = VALUES(base_salary),
+            housing_allowance = VALUES(housing_allowance),
+            transport_allowance = VALUES(transport_allowance),
+            other_allowances = VALUES(other_allowances),
+            deduction_per_absent_day = VALUES(deduction_per_absent_day),
+            deduction_per_late_day = VALUES(deduction_per_late_day),
+            deduction_per_half_day = VALUES(deduction_per_half_day)
+        `,
+        [
+          userId,
+          input.base_salary,
+          input.housing_allowance,
+          input.transport_allowance,
+          input.other_allowances,
+          input.deduction_per_absent_day,
+          input.deduction_per_late_day,
+          input.deduction_per_half_day,
+        ],
+      );
+
+      await connection.execute(
+        "UPDATE employee_profiles SET base_salary = ? WHERE user_id = ?",
+        [input.base_salary, userId],
+      );
+    });
 
     return (await this.findSettings(userId)) as PayrollSettings;
   }
