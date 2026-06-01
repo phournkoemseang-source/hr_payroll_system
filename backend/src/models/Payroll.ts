@@ -39,3 +39,32 @@ export interface PayrollSummary {
   total_deductions: number;
   total_net: number;
 }
+
+export interface StaffPayslip {
+  id: number | null;
+  employeeId: string;
+  employeeName: string;
+  position: string;
+  month: string;
+  year: number;
+  baseSalary: number;
+  housingAllowance: number;
+  transportAllowance: number;
+  otherAllowances: number;
+  grossPay: number;
+  absenceDeduction: number;
+  taxDeduction: number;
+  deductions: number;
+  netPay: number;
+  status: string;
+}
+
+export interface StaffPayslipHistoryItem {
+  id: number;
+  month: string;
+  year: number;
+  grossPay: number;
+  deductions: number;
+  netPay: number;
+  status: string;
+}

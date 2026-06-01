@@ -88,6 +88,23 @@ export class PayrollController extends BaseController {
     });
   }
 
+  public async getStaffPayslip(req: Request, res: Response): Promise<void> {
+    if (!req.user || req.user.role !== "staff") {
+      this.sendError(res, 403, "Staff access required");
+      return;
+    }
+
+    const period = this.getPeriod(req.query);
+    if (!period) {
+      this.sendError(res, 400, "Month and year are required");
+      return;
+    }
+
+    await this.handle(res, "Get staff payslip error", async () => {
+      res.json(await this.payrollService.getStaffPayslip(req.user!.id, period.month, period.year));
+    });
+  }
+
   public async deletePeriodPayroll(req: Request, res: Response): Promise<void> {
     const period = this.getPeriod(req.query);
     if (!period) {

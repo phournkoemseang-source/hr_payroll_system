@@ -18,6 +18,24 @@ export class EmployeeController extends BaseController {
     });
   }
 
+  public async updateOwnProfile(req: Request, res: Response): Promise<void> {
+    const user = req.user;
+    if (!user || user.role !== "staff") {
+      this.sendError(res, 403, "Staff access required");
+      return;
+    }
+
+    await this.handle(res, "Update profile error", async () => {
+      const updated = await this.employeeService.updateOwnProfile(user.id, req.body);
+      if (!updated) {
+        this.sendError(res, 404, "Staff profile not found");
+        return;
+      }
+
+      res.json({ message: "Profile updated." });
+    });
+  }
+
   public async create(req: Request, res: Response): Promise<void> {
     const error = EmployeeValidation.validateCreate(
       req.body as Partial<CreateEmployeeRequest>,

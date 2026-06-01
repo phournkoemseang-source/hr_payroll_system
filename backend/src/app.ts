@@ -67,6 +67,9 @@ class App {
     this.app.get("/staff/dashboard.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/staff/dashboard.html"));
     });
+    this.app.get("/staff/profile.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/staff/profile.html"));
+    });
     this.app.get("/staff/attendanceTracking.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/staff/attendanceTracking.html"));
     });
@@ -75,6 +78,9 @@ class App {
     });
     this.app.get("/staff/LeaveRequest.html", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/staff/LeaveRequest.html"));
+    });
+    this.app.get("/staff/payslip.html", (_req, res) => {
+      res.sendFile(path.join(__dirname, "../frontend/staff/payslip.html"));
     });
     this.app.get("*", (_req, res) => {
       res.sendFile(path.join(__dirname, "../frontend/login.html"));

@@ -170,18 +170,33 @@ export class DashboardRepository extends SchemaRepository {
   public async getStaffProfile(userId: number): Promise<StaffDashboardProfile | null> {
     const rows = await this.query<StaffProfileRow[]>(
       `
-        SELECT department,
-          position,
-          DATE_FORMAT(start_date, '%Y-%m-%d') AS startDate,
-          base_salary AS salary,
-          status
-        FROM employee_profiles
-        WHERE user_id = ?
+        SELECT u.id,
+          u.name,
+          u.email,
+          CONCAT('EMP-', LPAD(u.id, 4, '0')) AS employeeId,
+          ep.phone_number AS phoneNumber,
+          ep.address,
+          DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
+          ep.department,
+          ep.position,
+          DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
+          ep.base_salary AS salary,
+          ep.status
+        FROM users u
+        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        WHERE u.id = ? AND u.role = 'staff'
       `,
       [userId],
     );
     return rows.length > 0
       ? {
+          id: Number(rows[0].id),
+          name: rows[0].name,
+          email: rows[0].email,
+          employeeId: rows[0].employeeId,
+          phoneNumber: rows[0].phoneNumber,
+          address: rows[0].address,
+          dateOfBirth: rows[0].dateOfBirth,
           department: rows[0].department,
           position: rows[0].position,
           startDate: rows[0].startDate,

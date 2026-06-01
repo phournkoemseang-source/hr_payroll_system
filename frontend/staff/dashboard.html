@@ -3,56 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Staff Dashboard - HRPayroll</title>
+  <title>My Dashboard - HRPayroll</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/staffPortal.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; overflow-x: hidden; transition: opacity .08s ease; }
-    body.is-navigating { opacity: 0.99; pointer-events: none; }
-    .badge { background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
-    h1 { font-size: 28px; font-weight: 700; letter-spacing: 0; text-align: center; line-height: 1.15; }
-    p { color: #64748b; font-size: 15px; }
-    .user-info { width: min(720px, 100%); background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px 28px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0 8px; text-align: left; }
-    .summary-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc; }
-    .summary-item span { display: block; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-    .summary-item strong { color: #0f172a; font-size: 16px; }
-    .logout-btn { margin-top: 12px; min-height: 42px; padding: 10px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; }
-    .logout-btn:hover { background: #dc2626; }
-    @media (max-width: 760px) {
-      body { justify-content: flex-start; padding: 28px 16px; }
-      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 520px) {
-      body { padding: 22px 12px; }
-      h1 { font-size: 24px; }
-      .user-info { padding: 20px 16px; border-radius: 10px; }
-      .summary { grid-template-columns: 1fr; gap: 10px; }
-      .summary-item { padding: 13px; }
-      .logout-btn { width: 100%; }
-    }
+    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f7f9fc; color: #101828; transition: opacity .08s ease; }
+    body.is-navigating { opacity: .99; pointer-events: none; }
+    button, input, textarea, a { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    .layout { min-height: 100vh; display: grid; grid-template-columns: 298px 1fr; }
+    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.08); }
+    .brand { padding: 34px 26px 28px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .logo { width: 50px; height: 50px; border-radius: 8px; background: #2457f5; display: grid; place-items: center; font: 700 24px Georgia, serif; margin-bottom: 14px; }
+    .brand h2 { font-size: 20px; font-weight: 800; }
+    .brand p, .side-title, .user-block span, .top-sub, .muted { color: #91a0bb; }
+    .nav { padding: 28px 16px; display: grid; gap: 8px; }
+    .side-title { padding: 0 10px 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+    .nav a { min-height: 49px; border-radius: 8px; display: flex; align-items: center; gap: 14px; padding: 0 16px; color: #a8b3c8; font-weight: 800; }
+    .nav a.active, .nav a:hover { background: #2457f5; color: #fff; }
+    .ico { width: 22px; text-align: center; font-size: 21px; font-weight: 500; }
+    .side-footer { margin-top: auto; min-height: 130px; padding: 24px 26px; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2457f5; display: grid; place-items: center; font-weight: 800; flex: 0 0 auto; }
+    .user-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .user-block strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .logout { border: 0; background: transparent; color: #9eacc5; cursor: pointer; font-size: 22px; }
+    .main { min-width: 0; }
+    .topbar { height: 84px; background: #fff; border-bottom: 1px solid #dce4ef; display: flex; align-items: center; justify-content: space-between; padding: 0 38px; gap: 18px; }
+    .topbar h1 { font-size: 23px; }
+    .actions { display: flex; align-items: center; gap: 14px; }
+    .search { width: min(340px, 35vw); height: 48px; border: 1px solid #c8d3e4; border-radius: 8px; padding: 0 16px; color: #172033; }
+    .bell { width: 50px; height: 48px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; cursor: pointer; position: relative; font-size: 22px; color: #475569; }
+    .bell::after { content: ""; position: absolute; top: 12px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; }
+    .page { padding: 38px; display: grid; gap: 32px; }
+    .page-title h2 { font: 700 32px/1.1 "Playfair Display", serif; }
+    .page-title p { margin-top: 8px; font-weight: 600; color: #90a0ba; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+    .card, .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; box-shadow: 0 4px 16px rgba(15,23,42,.09); }
+    .card { min-height: 172px; padding: 28px; display: grid; align-content: start; gap: 14px; }
+    .iconbox { width: 56px; height: 56px; border-radius: 10px; display: grid; place-items: center; font-size: 28px; }
+    .green { color: #079669; background: #e9fbf2; }
+    .blue { color: #2457f5; background: #eef3ff; }
+    .cyan { color: #0891b2; background: #e8fbff; }
+    .amber { color: #d97706; background: #fff7e6; }
+    .card strong { font: 800 34px/1 "Playfair Display", serif; }
+    .card span { color: #8ea0ba; font-weight: 700; }
+    .good { color: #059669; font-weight: 800; }
+    .warn { color: #d97706; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: minmax(420px, 1fr) minmax(360px, 1fr); gap: 28px; align-items: start; }
+    .panel-head { min-height: 70px; border-bottom: 1px solid #dbe3ef; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; }
+    .panel-head h3 { font-size: 20px; font-weight: 800; }
+    .panel-body { padding: 28px; }
+    .calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+    .calendar b { color: #8ea0ba; text-align: center; font-size: 13px; padding: 8px 0; }
+    .calendar span { min-height: 34px; background: #f1f5f9; display: grid; place-items: center; color: #8ea0ba; font-weight: 700; }
+    .calendar .present { background: #e8fbf2; color: #047857; }
+    .calendar .late { background: #fff8e7; color: #d97706; }
+    .calendar .absent { background: #fff0f0; color: #dc2626; }
+    .calendar .on_leave { background: #edf2ff; color: #2457f5; }
+    .calendar .empty-day { background: transparent; }
+    .balance { display: grid; gap: 22px; }
+    .balance-row { display: grid; gap: 9px; }
+    .balance-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 800; }
+    .balance-line span { color: #2457f5; }
+    .bar { height: 9px; border-radius: 999px; background: #e1e7f0; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: #2457f5; width: 0; border-radius: inherit; }
+    .bar.sick i { background: #10a876; }
+    .primary { min-height: 42px; border: 0; border-radius: 8px; background: #2457f5; color: #fff; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
+    @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } .sidebar { position: static; } .stats, .grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .topbar, .page { padding-left: 18px; padding-right: 18px; } .topbar { height: auto; padding-top: 16px; padding-bottom: 16px; align-items: stretch; flex-direction: column; } .actions { width: 100%; } .search { width: 100%; } .stats, .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
-<body data-role="staff">
-  <div class="badge">Staff Portal</div>
-  <h1>Staff Dashboard</h1>
-  <div class="user-info">
-    <p>Logged in as: <strong id="userName">-</strong></p>
-    <p style="margin-top:4px">Role: <strong id="userRole">-</strong></p>
-    <div class="summary" aria-label="Staff dashboard summary">
-      <div class="summary-item"><span>Department</span><strong id="staffDepartment">-</strong></div>
-      <div class="summary-item"><span>Position</span><strong id="staffPosition">-</strong></div>
-      <div class="summary-item"><span>Today</span><strong id="staffAttendance">Loading</strong></div>
-      <div class="summary-item"><span>Pending Leave</span><strong id="staffPendingLeaves">0</strong></div>
-      <div class="summary-item"><span>Latest Payroll</span><strong id="staffLatestPayroll">$0</strong></div>
-      <div class="summary-item"><span>Data</span><strong id="dashboardStatus">Loading</strong></div>
-    </div>
-    <a class="logout-btn" href="/staff/attendanceTracking.html">My Attendance</a>
-    <a class="logout-btn" href="/staff/LeaveRequest.html">My Leave</a>
-    <button class="logout-btn" id="logoutButton" type="button">Sign Out</button>
+<body data-role="staff" data-page="dashboard">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><div class="logo">H</div><h2>HRPayroll</h2><p>Management System</p></div>
+      <nav class="nav" aria-label="Staff navigation">
+        <div class="side-title">My Space</div>
+        <a class="active" data-nav href="/staff/dashboard.html"><span class="ico" data-icon="dashboard"></span>Dashboard</a>
+        <a data-nav href="/staff/profile.html"><span class="ico" data-icon="user"></span>My Profile</a>
+        <a data-nav href="/staff/attendanceTracking.html"><span class="ico" data-icon="calendar"></span>My Attendance</a>
+        <a data-nav href="/staff/LeaveRequest.html"><span class="ico" data-icon="leave"></span>My Leave</a>
+        <a data-nav href="/staff/payslip.html"><span class="ico" data-icon="payslip"></span>My Payslip</a>
+      </nav>
+      <div class="side-footer"><div class="user-block"><div class="avatar" id="avatarInitial">S</div><div><strong id="sidebarName">-</strong><span>Staff</span></div></div><button class="logout" id="logoutButton" type="button" aria-label="Logout"><span class="button-icon" data-icon="logout"></span><span>Logout</span></button></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><h1>My Dashboard</h1><p class="top-sub">Welcome back, <span id="userName">-</span></p><span id="userRole" hidden>Staff</span></div>
+        <div class="actions"><input class="search" id="globalSearch" type="search" placeholder="Search..." /><button class="bell" id="notificationButton" type="button" aria-label="Notifications"><span data-icon="bell"></span></button></div>
+      </header>
+      <section class="page">
+        <div class="page-title"><h2>My Dashboard</h2><p id="dashboardDate">Loading your workspace...</p></div>
+        <div class="stats">
+          <article class="card"><div class="iconbox green" data-icon="check"></div><strong id="daysPresent">0</strong><span>Days Present</span><p class="good" id="attendanceRateText">0% attendance rate</p></article>
+          <article class="card"><div class="iconbox blue" data-icon="leave"></div><strong id="leaveRemaining">0</strong><span>Leave Days Remaining</span><p class="muted" id="leaveUsedText">0 used</p></article>
+          <article class="card"><div class="iconbox cyan" data-icon="payslip"></div><strong id="latestPayslip">$0</strong><span>Last Payslip</span><p class="good" id="latestPayslipStatus">Draft</p></article>
+          <article class="card"><div class="iconbox amber" data-icon="clock"></div><strong id="pendingLeaves">0</strong><span>Pending Leave Request</span><p class="warn" id="pendingLeaveCaption">No pending requests</p></article>
+        </div>
+        <div class="grid">
+          <section class="panel"><div class="panel-head"><h3>My Attendance</h3></div><div class="panel-body"><div class="calendar" id="miniCalendar"></div></div></section>
+          <section class="panel"><div class="panel-head"><h3>My Leave Balance</h3></div><div class="panel-body balance">
+            <div class="balance-row"><div class="balance-line">Annual Leave <span id="annualText">0 days left</span></div><div class="bar"><i id="annualBar"></i></div></div>
+            <div class="balance-row"><div class="balance-line">Sick Leave <span id="sickText">0 days left</span></div><div class="bar sick"><i id="sickBar"></i></div></div>
+            <a class="primary" data-nav href="/staff/LeaveRequest.html">Request Leave</a>
+          </div></section>
+        </div>
+      </section>
+    </main>
   </div>
   <script src="/js/pageTransitions.js"></script>
-  <script src="/js/dashboard.js"></script>
+  <script src="/js/staffIcons.js"></script>
+  <script src="/js/staffPortal.js"></script>
 </body>
 </html>

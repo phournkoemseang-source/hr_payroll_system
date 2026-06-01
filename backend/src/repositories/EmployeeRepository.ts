@@ -191,6 +191,27 @@ export class EmployeeRepository extends SchemaRepository {
     return rows.length > 0;
   }
 
+  public async updateOwnProfile(
+    userId: number,
+    data: { phoneNumber?: string | null; address?: string | null; dateOfBirth?: string | null },
+  ): Promise<boolean> {
+    await this.ensureSchema();
+    const result = await this.execute(
+      `
+        UPDATE employee_profiles
+        SET phone_number = ?, address = ?, date_of_birth = ?
+        WHERE user_id = ?
+      `,
+      [
+        data.phoneNumber?.trim() || null,
+        data.address?.trim() || null,
+        data.dateOfBirth || null,
+        userId,
+      ],
+    );
+    return result.affectedRows > 0;
+  }
+
   private toEmployee(row: EmployeeRow): Employee {
     return {
       id: Number(row.id),

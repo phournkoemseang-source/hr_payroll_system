@@ -11,6 +11,9 @@ export abstract class SchemaRepository extends BaseRepository {
         user_id INT NOT NULL UNIQUE,
         department VARCHAR(100) NOT NULL DEFAULT 'Operations',
         position VARCHAR(100) NOT NULL DEFAULT 'Staff',
+        phone_number VARCHAR(50) NULL,
+        address VARCHAR(255) NULL,
+        date_of_birth DATE NULL,
         start_date DATE NULL,
         base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
         status ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -21,6 +24,18 @@ export abstract class SchemaRepository extends BaseRepository {
       )
     `);
 
+    await this.ensureEmployeeProfileColumn(
+      "phone_number",
+      "ALTER TABLE employee_profiles ADD COLUMN phone_number VARCHAR(50) NULL AFTER position",
+    );
+    await this.ensureEmployeeProfileColumn(
+      "address",
+      "ALTER TABLE employee_profiles ADD COLUMN address VARCHAR(255) NULL AFTER phone_number",
+    );
+    await this.ensureEmployeeProfileColumn(
+      "date_of_birth",
+      "ALTER TABLE employee_profiles ADD COLUMN date_of_birth DATE NULL AFTER address",
+    );
     await this.seedMissingEmployeeProfiles();
   }
 
@@ -280,6 +295,14 @@ export abstract class SchemaRepository extends BaseRepository {
 
   private async ensurePayrollRecordColumn(column: string, sql: string): Promise<void> {
     const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM payroll_records LIKE ?", [column]);
+
+    if (rows.length === 0) {
+      await this.execute(sql);
+    }
+  }
+
+  private async ensureEmployeeProfileColumn(column: string, sql: string): Promise<void> {
+    const rows = await this.query<RowDataPacket[]>("SHOW COLUMNS FROM employee_profiles LIKE ?", [column]);
 
     if (rows.length === 0) {
       await this.execute(sql);

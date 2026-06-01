@@ -34,6 +34,13 @@ export interface RecentEmployee {
 }
 
 export interface StaffDashboardProfile {
+  id: number;
+  name: string;
+  email: string;
+  employeeId: string;
+  phoneNumber: string | null;
+  address: string | null;
+  dateOfBirth: string | null;
   department: string;
   position: string;
   startDate: string | null;

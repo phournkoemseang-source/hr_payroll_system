@@ -10,6 +10,11 @@ export class PayrollRoutes extends BaseRoutes {
   }
 
   protected initializeRoutes(): void {
+    this.router.get(
+      "/staff",
+      ...this.authenticated(),
+      this.payrollController.getStaffPayslip.bind(this.payrollController),
+    );
     this.router.use(...this.adminOnly());
     this.router.get("/settings/:userId", this.payrollController.getSettings.bind(this.payrollController));
     this.router.put("/settings/:userId", this.payrollController.saveSettings.bind(this.payrollController));

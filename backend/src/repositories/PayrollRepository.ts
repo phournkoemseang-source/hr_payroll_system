@@ -1,5 +1,11 @@
 import { RowDataPacket } from "mysql2";
-import { PayrollCalculation, PayrollSettings, PayrollSettingsInput } from "../models/Payroll";
+import {
+  PayrollCalculation,
+  PayrollSettings,
+  PayrollSettingsInput,
+  StaffPayslip,
+  StaffPayslipHistoryItem,
+} from "../models/Payroll";
 import { SchemaRepository } from "./SchemaRepository";
 
 interface PayrollEmployeeRow extends RowDataPacket {
@@ -16,6 +22,24 @@ interface PayrollEmployeeRow extends RowDataPacket {
   absent_days: number | string;
   late_days: number | string;
   half_days: number | string;
+}
+
+interface StaffPayrollRow extends RowDataPacket {
+  id: number | null;
+  user_id: number;
+  name: string;
+  employee_id: string;
+  position: string;
+  pay_period: string | null;
+  base_salary: number | string | null;
+  profile_salary: number | string | null;
+  housing_allowance: number | string | null;
+  transport_allowance: number | string | null;
+  other_allowances: number | string | null;
+  deductions: number | string | null;
+  gross_pay: number | string | null;
+  net_pay: number | string | null;
+  status: string | null;
 }
 
 export class PayrollRepository extends SchemaRepository {
@@ -201,6 +225,106 @@ export class PayrollRepository extends SchemaRepository {
       `,
       [year, month],
     );
+  }
+
+  public async findStaffPayslip(
+    userId: number,
+    month: number,
+    year: number,
+  ): Promise<StaffPayslip | null> {
+    await this.ensureSchema();
+    const rows = await this.query<StaffPayrollRow[]>(
+      `
+        SELECT pr.id,
+          u.id AS user_id,
+          u.name,
+          CONCAT('EMP-', LPAD(u.id, 4, '0')) AS employee_id,
+          ep.position,
+          DATE_FORMAT(pr.pay_period, '%Y-%m-%d') AS pay_period,
+          pr.base_salary,
+          ep.base_salary AS profile_salary,
+          ps.housing_allowance,
+          ps.transport_allowance,
+          ps.other_allowances,
+          pr.deductions,
+          pr.gross_pay,
+          pr.net_pay,
+          pr.status
+        FROM users u
+        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        LEFT JOIN payroll_records pr
+          ON pr.user_id = u.id
+          AND YEAR(pr.pay_period) = ?
+          AND MONTH(pr.pay_period) = ?
+        LEFT JOIN payroll_settings ps ON ps.user_id = u.id
+        WHERE u.id = ? AND u.role = 'staff'
+        LIMIT 1
+      `,
+      [year, month, userId],
+    );
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const row = rows[0];
+    const baseSalary = Number(row.base_salary ?? row.profile_salary ?? 0);
+    const housingAllowance = Number(row.housing_allowance || 0);
+    const transportAllowance = Number(row.transport_allowance || 0);
+    const otherAllowances = Number(row.other_allowances || 0);
+    const savedGross = Number(row.gross_pay || 0);
+    const grossPay = savedGross || baseSalary + housingAllowance + transportAllowance + otherAllowances;
+    const deductions = Number(row.deductions || 0);
+    const savedNet = Number(row.net_pay || 0);
+
+    return {
+      id: row.id ? Number(row.id) : null,
+      employeeId: row.employee_id,
+      employeeName: row.name,
+      position: row.position,
+      month: new Date(year, month - 1, 1).toLocaleString("en-US", { month: "long" }),
+      year,
+      baseSalary,
+      housingAllowance,
+      transportAllowance,
+      otherAllowances,
+      grossPay,
+      absenceDeduction: deductions,
+      taxDeduction: 0,
+      deductions,
+      netPay: savedNet || Math.max(0, grossPay - deductions),
+      status: row.status || "draft",
+    };
+  }
+
+  public async findStaffPayslipHistory(userId: number): Promise<StaffPayslipHistoryItem[]> {
+    await this.ensureSchema();
+    const rows = await this.query<RowDataPacket[]>(
+      `
+        SELECT id,
+          MONTHNAME(pay_period) AS month,
+          YEAR(pay_period) AS year,
+          gross_pay AS grossPay,
+          deductions,
+          net_pay AS netPay,
+          status
+        FROM payroll_records
+        WHERE user_id = ?
+        ORDER BY pay_period DESC, id DESC
+        LIMIT 12
+      `,
+      [userId],
+    );
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      month: String(row.month),
+      year: Number(row.year),
+      grossPay: Number(row.grossPay || 0),
+      deductions: Number(row.deductions || 0),
+      netPay: Number(row.netPay || 0),
+      status: String(row.status || "draft"),
+    }));
   }
 
   public async deletePeriod(month: number, year: number): Promise<number> {

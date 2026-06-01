@@ -64,4 +64,11 @@ export class EmployeeService {
   public async deleteEmployee(id: number): Promise<boolean> {
     return this.employeeRepository.delete(id);
   }
+
+  public async updateOwnProfile(
+    userId: number,
+    data: { phoneNumber?: string | null; address?: string | null; dateOfBirth?: string | null },
+  ): Promise<boolean> {
+    return this.employeeRepository.updateOwnProfile(userId, data);
+  }
 }

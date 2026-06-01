@@ -2,6 +2,9 @@ import dotenv from "dotenv";
 import path from "path";
 
 dotenv.config({
+  path: path.resolve(process.cwd(), ".env"),
+});
+dotenv.config({
   path: path.resolve(process.cwd(), "backend", ".env"),
 });
 
@@ -30,6 +33,22 @@ export class EnvConfig {
 
     if (missing.length > 0) {
       throw new Error(`Missing environment variable(s): ${missing.join(", ")}`);
+    }
+
+    const placeholderValues = Object.entries({
+      JWT_SECRET: this.jwtSecret,
+      DB_HOST: this.db.host,
+      DB_USER: this.db.user,
+      DB_PASSWORD: this.db.password,
+      DB_NAME: this.db.database,
+    })
+      .filter(([, value]) => typeof value === "string" && value.startsWith("your_"))
+      .map(([key]) => key);
+
+    if (placeholderValues.length > 0) {
+      throw new Error(
+        `Replace placeholder environment variable(s): ${placeholderValues.join(", ")}`,
+      );
     }
   }
 }

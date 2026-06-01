@@ -3,117 +3,151 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Leave - HR Payroll</title>
+  <title>My Leave - HRPayroll</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/staffPortal.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f6f8fb; color: #111827; overflow-x: hidden; transition: opacity .08s ease; }
+    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f7f9fc; color: #101828; overflow-x: hidden; transition: opacity .08s ease; }
     button, input, select, textarea, a { font: inherit; }
-    .topbar { height: 76px; background: #fff; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
-    .page { max-width: 1180px; margin: 0 auto; padding: 34px 24px 48px; display: grid; gap: 24px; }
-    h1 { font-size: 32px; line-height: 1.1; font-weight: 800; }
-    h2 { font-size: 18px; font-weight: 800; }
-    .muted, .subtitle { color: #93a1ba; }
-    .subtitle { font-weight: 600; margin-top: 8px; }
-    .grid { display: grid; grid-template-columns: minmax(320px, 520px) minmax(420px, 1fr); gap: 24px; align-items: start; }
-    .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; box-shadow: 0 4px 14px rgba(15, 23, 42, .08); overflow: hidden; }
-    .panel-head { min-height: 68px; padding: 20px 26px; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; }
-    .panel-body { padding: 26px; display: grid; gap: 18px; }
+    a { color: inherit; text-decoration: none; }
+    .layout { min-height: 100vh; display: grid; grid-template-columns: 298px 1fr; }
+    .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.08); }
+    .brand { padding: 34px 26px 28px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .logo { width: 50px; height: 50px; border-radius: 8px; background: #2457f5; display: grid; place-items: center; font: 700 24px Georgia, serif; margin-bottom: 14px; }
+    .brand h2 { font-size: 20px; font-weight: 800; }
+    .brand p, .side-title, .muted, .top-sub, .user-block span, .subtitle { color: #91a0bb; }
+    .nav { padding: 28px 16px; display: grid; gap: 8px; }
+    .side-title { padding: 0 10px 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+    .nav a { min-height: 49px; border-radius: 8px; display: flex; align-items: center; gap: 14px; padding: 0 16px; color: #a8b3c8; font-weight: 800; }
+    .nav a.active, .nav a:hover { background: #2457f5; color: #fff; }
+    .ico { width: 22px; text-align: center; font-size: 21px; font-weight: 500; }
+    .side-footer { margin-top: auto; min-height: 130px; padding: 24px 26px; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2457f5; display: grid; place-items: center; font-weight: 800; flex: 0 0 auto; }
+    .user-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .user-block strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .logout { border: 0; background: transparent; color: #9eacc5; cursor: pointer; font-size: 22px; }
+    .topbar { height: 84px; background: #fff; border-bottom: 1px solid #dce4ef; display: flex; align-items: center; justify-content: space-between; padding: 0 38px; gap: 18px; }
+    .topbar h1 { font-size: 23px; }
+    .actions { display: flex; align-items: center; gap: 14px; }
+    .search { width: min(340px, 35vw); height: 48px; border: 1px solid #c8d3e4; border-radius: 8px; padding: 0 16px; background: #fff; color: #172033; }
+    .bell { width: 50px; height: 48px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; cursor: pointer; position: relative; font-size: 22px; color: #475569; }
+    .bell::after { content: ""; position: absolute; top: 12px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; }
+    .page { padding: 38px; display: grid; gap: 28px; }
+    .page-title h2 { font: 700 32px/1.1 "Playfair Display", serif; }
+    .subtitle { font-weight: 700; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: minmax(360px, 520px) minmax(460px, 1fr); gap: 28px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; box-shadow: 0 4px 16px rgba(15,23,42,.09); overflow: hidden; }
+    .panel-head { min-height: 70px; padding: 0 28px; border-bottom: 1px solid #dbe3ef; display: flex; align-items: center; justify-content: space-between; }
+    .panel-head h3 { font-size: 20px; font-weight: 800; }
+    .panel-body { padding: 28px; display: grid; gap: 18px; }
     label { display: grid; gap: 8px; color: #42526b; font-weight: 800; }
     .input, .select, textarea { width: 100%; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #172033; padding: 0 14px; }
     .input, .select { height: 48px; }
     textarea { min-height: 108px; padding-top: 12px; resize: vertical; }
     .date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .btn { height: 42px; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #42526b; padding: 0 16px; font-weight: 800; cursor: pointer; }
-    .top-actions { display: flex; align-items: center; gap: 10px; }
-    .link-btn { height: 42px; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #42526b; padding: 0 16px; font-weight: 800; display: inline-flex; align-items: center; text-decoration: none; }
+    .btn { min-height: 42px; border: 1px solid #cbd6e6; border-radius: 8px; background: #fff; color: #42526b; padding: 0 16px; font-weight: 800; cursor: pointer; }
     .btn.primary { width: 100%; border-color: #2457f5; background: #2457f5; color: #fff; }
-    .btn.danger { border-color: #fecaca; color: #dc2626; background: #fff5f5; }
+    .btn.danger, .cancel { border-color: #fecaca; color: #dc2626; background: #fff5f5; }
+    .cancel { min-height: 38px; border-radius: 8px; padding: 0 14px; font-weight: 800; cursor: pointer; }
     .alert { display: none; border-radius: 8px; padding: 12px 14px; font-weight: 800; }
     .alert.success { display: block; background: #dcfce7; color: #166534; border: 1px solid #86efac; }
     .alert.error { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 860px; }
-    th, td { padding: 16px 20px; border-bottom: 1px solid #dbe3ef; text-align: left; vertical-align: top; }
-    th { color: #8ea0ba; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 17px 22px; border-bottom: 1px solid #dbe3ef; text-align: left; vertical-align: top; }
+    th { color: #91a0bb; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
     td { font-weight: 500; }
-    .status { display: inline-flex; height: 28px; align-items: center; border-radius: 999px; padding: 0 12px; font-weight: 800; }
+    .status { display: inline-flex; min-height: 28px; align-items: center; border-radius: 999px; padding: 0 12px; font-weight: 800; }
     .status.pending { background: #fff8e7; color: #b45309; }
     .status.approved { background: #e8fbf2; color: #047857; }
     .status.rejected { background: #fff0f0; color: #dc2626; }
     .status.cancelled { background: #edf2ff; color: #2457f5; }
     .empty { color: #64748b; padding: 20px; text-align: center; }
-    @media (max-width: 980px) { .grid, .date-grid { grid-template-columns: 1fr; } .topbar, .page { padding-left: 18px; padding-right: 18px; } }
-    @media (max-width: 760px) {
-      .topbar { height: auto; padding: 18px; align-items: flex-start; gap: 14px; flex-direction: column; }
-      .top-actions { flex-wrap: wrap; width: 100%; }
-      .link-btn, .btn.danger { flex: 1 1 160px; justify-content: center; }
-      .page { padding-top: 28px; }
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .topbar, .page { padding-left: 18px; padding-right: 18px; }
+      .topbar { height: auto; padding-top: 16px; padding-bottom: 16px; align-items: stretch; flex-direction: column; }
+      .actions { width: 100%; }
+      .search { width: 100%; }
+      .date-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-<body data-role="staff">
-  <header class="topbar">
-    <div>
-      <h2>My Leave</h2>
-      <p class="muted">Logged in as <strong id="userName">-</strong> · <span id="userRole">-</span></p>
-    </div>
-    <div class="top-actions">
-      <a class="link-btn" href="/staff/dashboard.html">Dashboard</a>
-      <a class="link-btn" href="/staff/attendanceTracking.html">My Attendance</a>
-      <button class="btn danger" id="logoutButton" type="button">Sign Out</button>
-    </div>
-  </header>
-  <main class="page">
-    <div>
-      <h1>My Leave</h1>
-      <p class="subtitle">Submit and track your leave requests</p>
-    </div>
-    <div id="leaveAlert" class="alert"></div>
-    <div class="grid">
-      <section class="panel">
-        <div class="panel-head"><h2>New Leave Request</h2></div>
-        <form class="panel-body" id="leaveForm">
-          <label>Leave Type
-            <select class="select" id="leaveType" required>
-              <option value="annual">Annual Leave</option>
-              <option value="sick">Sick Leave</option>
-              <option value="personal">Personal Leave</option>
-              <option value="unpaid">Unpaid Leave</option>
-              <option value="maternity">Maternity Leave</option>
-              <option value="paternity">Paternity Leave</option>
-            </select>
-          </label>
-          <div class="date-grid">
-            <label>From Date <input class="input" id="startDate" type="date" required /></label>
-            <label>To Date <input class="input" id="endDate" type="date" required /></label>
-          </div>
-          <label>Reason <textarea id="reason" maxlength="500" required></textarea></label>
-          <button class="btn primary" id="submitLeave" type="submit">Submit Request</button>
-        </form>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><h2>My Leave History</h2></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Dates</th>
-                <th>Days</th>
-                <th>Status</th>
-                <th>Reason / HR Note</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="leaveHistoryBody"></tbody>
-          </table>
+<body data-role="staff" data-page="leave">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><div class="logo">H</div><h2>HRPayroll</h2><p>Management System</p></div>
+      <nav class="nav" aria-label="Staff navigation">
+        <div class="side-title">My Space</div>
+        <a data-nav href="/staff/dashboard.html"><span class="ico" data-icon="dashboard"></span>Dashboard</a>
+        <a data-nav href="/staff/profile.html"><span class="ico" data-icon="user"></span>My Profile</a>
+        <a data-nav href="/staff/attendanceTracking.html"><span class="ico" data-icon="calendar"></span>My Attendance</a>
+        <a class="active" data-nav href="/staff/LeaveRequest.html"><span class="ico" data-icon="leave"></span>My Leave</a>
+        <a data-nav href="/staff/payslip.html"><span class="ico" data-icon="payslip"></span>My Payslip</a>
+      </nav>
+      <div class="side-footer">
+        <div class="user-block"><div class="avatar" id="avatarInitial">S</div><div><strong id="sidebarName">-</strong><span>Staff</span></div></div>
+        <button class="logout" id="logoutButton" type="button" aria-label="Logout"><span class="button-icon" data-icon="logout"></span><span>Logout</span></button>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div><h1>My Leave</h1><p class="top-sub">Submit and manage leave</p><span id="userName" hidden>-</span><span id="userRole" hidden>Staff</span></div>
+        <div class="actions"><input class="search" id="globalSearch" type="search" placeholder="Search..." /><button class="bell" id="notificationButton" type="button" aria-label="Notifications"><span data-icon="bell"></span></button></div>
+      </header>
+      <section class="page">
+        <div class="page-title"><h2>My Leave</h2><p class="subtitle">Submit and track your leave requests</p></div>
+        <div id="leaveAlert" class="alert"></div>
+        <div class="grid">
+          <section class="panel">
+            <div class="panel-head"><h3>New Leave Request</h3></div>
+            <form class="panel-body" id="leaveForm">
+              <label>Leave Type
+                <select class="select" id="leaveType" required>
+                  <option value="annual">Annual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="personal">Personal Leave</option>
+                  <option value="unpaid">Unpaid Leave</option>
+                  <option value="maternity">Maternity Leave</option>
+                  <option value="paternity">Paternity Leave</option>
+                </select>
+              </label>
+              <div class="date-grid">
+                <label>From Date <input class="input" id="startDate" type="date" required /></label>
+                <label>To Date <input class="input" id="endDate" type="date" required /></label>
+              </div>
+              <label>Reason <textarea id="reason" maxlength="500" required></textarea></label>
+              <button class="btn primary" id="submitLeave" type="submit">Submit Request</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>My Leave History</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Dates</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="leaveHistoryBody"></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </section>
-    </div>
-  </main>
+    </main>
+  </div>
   <script src="/js/pageTransitions.js"></script>
-  <script src="/js/leaveRequest.js"></script>
+  <script src="/js/staffIcons.js"></script>
+  <script src="/js/staffPortal.js"></script>
 </body>
 </html>

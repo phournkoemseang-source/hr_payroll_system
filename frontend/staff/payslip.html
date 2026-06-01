@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Payslip - HRPayroll</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/staffPortal.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; font-family: Inter, sans-serif; background: #f7f9fc; color: #101828; }
+    button, input, a { font: inherit; } a { color: inherit; text-decoration: none; }
+    .layout { min-height: 100vh; display: grid; grid-template-columns: 298px 1fr; } .sidebar { background: #111d3a; color: #fff; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.08); }
+    .brand { padding: 34px 26px 28px; border-bottom: 1px solid rgba(255,255,255,.1); } .logo { width: 50px; height: 50px; border-radius: 8px; background: #2457f5; display: grid; place-items: center; font: 700 24px Georgia, serif; margin-bottom: 14px; }
+    .brand h2 { font-size: 20px; font-weight: 800; } .brand p, .side-title, .muted, .top-sub, .user-block span { color: #91a0bb; }
+    .nav { padding: 28px 16px; display: grid; gap: 8px; } .side-title { padding: 0 10px 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+    .nav a { min-height: 49px; border-radius: 8px; display: flex; align-items: center; gap: 14px; padding: 0 16px; color: #a8b3c8; font-weight: 800; } .nav a.active, .nav a:hover { background: #2457f5; color: #fff; }
+    .ico { width: 22px; text-align: center; font-size: 21px; font-weight: 500; } .side-footer { margin-top: auto; min-height: 130px; padding: 24px 26px; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2457f5; display: grid; place-items: center; font-weight: 800; flex: 0 0 auto; } .user-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .logout { border: 0; background: transparent; color: #9eacc5; cursor: pointer; font-size: 22px; } .topbar { height: 84px; background: #fff; border-bottom: 1px solid #dce4ef; display: flex; align-items: center; justify-content: space-between; padding: 0 38px; gap: 18px; }
+    .actions { display: flex; align-items: center; gap: 14px; } .search, .month { height: 48px; border: 1px solid #c8d3e4; border-radius: 8px; padding: 0 16px; background: #fff; color: #172033; } .search { width: min(340px, 35vw); }
+    .bell { width: 50px; height: 48px; border: 1px solid #d7dfeb; border-radius: 8px; background: #fff; cursor: pointer; position: relative; font-size: 22px; color: #475569; } .bell::after { content: ""; position: absolute; top: 12px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: #ef4444; }
+    .page { padding: 38px; display: grid; gap: 28px; } .page-title { display: flex; align-items: start; justify-content: space-between; gap: 18px; } .page-title h2 { font: 700 32px/1.1 "Playfair Display", serif; } .page-title p { margin-top: 8px; color: #91a0bb; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: minmax(360px, 520px) minmax(460px, 1fr); gap: 28px; align-items: start; } .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; box-shadow: 0 4px 16px rgba(15,23,42,.09); overflow: hidden; }
+    .slip { padding: 36px 38px; } .slip-head { display: flex; justify-content: space-between; gap: 20px; border-bottom: 3px solid #2457f5; padding-bottom: 24px; margin-bottom: 26px; } .slip h3 { font: 700 25px "Playfair Display", serif; }
+    .section-title { color: #91a0bb; font-weight: 800; text-transform: uppercase; margin: 22px 0 12px; } .line { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #dbe3ef; padding: 12px 0; font-size: 17px; } .plus { color: #059669; } .minus { color: #dc2626; } .net { color: #2457f5; font-weight: 800; font-size: 20px; border-top: 3px solid #2457f5; border-bottom: 0; margin-top: 12px; }
+    .primary { width: 100%; min-height: 42px; margin-top: 28px; border: 0; border-radius: 8px; background: #2457f5; color: #fff; font-weight: 800; cursor: pointer; }
+    .panel-head { min-height: 70px; border-bottom: 1px solid #dbe3ef; padding: 0 28px; display: flex; align-items: center; } table { width: 100%; border-collapse: collapse; min-width: 680px; } th, td { padding: 16px 22px; border-bottom: 1px solid #dbe3ef; text-align: left; white-space: nowrap; } th { color: #91a0bb; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; } .status { display: inline-flex; min-height: 28px; align-items: center; border-radius: 999px; padding: 0 12px; background: #e8fbf2; color: #047857; font-weight: 800; } .primary-text { color: #2457f5; font-weight: 800; } .danger { color: #dc2626; } .table-wrap { overflow-x: auto; }
+    @media print { .sidebar, .topbar, .page-title, .panel:not(.printable) { display: none; } .layout { display: block; } .page { padding: 0; } .printable { box-shadow: none; border: 0; } }
+    @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .topbar, .page { padding-left: 18px; padding-right: 18px; } .topbar, .page-title { height: auto; padding-top: 16px; padding-bottom: 16px; align-items: stretch; flex-direction: column; } .actions { width: 100%; } .search { width: 100%; } }
+  </style>
+</head>
+<body data-role="staff" data-page="payslip">
+  <div class="layout">
+    <aside class="sidebar"><div class="brand"><div class="logo">H</div><h2>HRPayroll</h2><p>Management System</p></div><nav class="nav" aria-label="Staff navigation"><div class="side-title">My Space</div><a data-nav href="/staff/dashboard.html"><span class="ico" data-icon="dashboard"></span>Dashboard</a><a data-nav href="/staff/profile.html"><span class="ico" data-icon="user"></span>My Profile</a><a data-nav href="/staff/attendanceTracking.html"><span class="ico" data-icon="calendar"></span>My Attendance</a><a data-nav href="/staff/LeaveRequest.html"><span class="ico" data-icon="leave"></span>My Leave</a><a class="active" data-nav href="/staff/payslip.html"><span class="ico" data-icon="payslip"></span>My Payslip</a></nav><div class="side-footer"><div class="user-block"><div class="avatar" id="avatarInitial">S</div><div><strong id="sidebarName">-</strong><span>Staff</span></div></div><button class="logout" id="logoutButton" type="button" aria-label="Logout"><span class="button-icon" data-icon="logout"></span><span>Logout</span></button></div></aside>
+    <main><header class="topbar"><div><h1>My Payslip</h1><p class="top-sub">Monthly earnings breakdown</p><span id="userName" hidden>-</span><span id="userRole" hidden>Staff</span></div><div class="actions"><input class="search" id="globalSearch" type="search" placeholder="Search..." /><button class="bell" id="notificationButton" type="button" aria-label="Notifications"><span data-icon="bell"></span></button></div></header>
+      <section class="page"><div class="page-title"><div><h2>My Payslip</h2><p>View and download your monthly salary details</p></div><input class="month" id="payslipMonth" type="month" /></div>
+        <div class="grid">
+          <section class="panel printable"><div class="slip"><div class="slip-head"><div><h3>Payslip</h3><p class="muted" id="payslipSub">-</p></div><div style="text-align:right"><h3 id="payslipEmployee">-</h3><p class="muted" id="payslipPosition">-</p></div></div><div class="section-title">Earnings</div><div class="line"><span>Base Salary</span><strong id="baseSalary">$0.00</strong></div><div class="line"><span>Housing Allowance</span><strong class="plus" id="housingAllowance">+$0.00</strong></div><div class="line"><span>Transport Allowance</span><strong class="plus" id="transportAllowance">+$0.00</strong></div><div class="section-title">Deductions</div><div class="line"><span>Attendance Deduction</span><strong class="minus" id="absenceDeduction">-$0.00</strong></div><div class="line"><span>Income Tax</span><strong class="minus" id="taxDeduction">-$0.00</strong></div><div class="line net"><span>Net Pay</span><strong id="netPay">$0.00</strong></div><button class="primary" id="downloadPayslip" type="button">Download PDF</button></div></section>
+          <section class="panel"><div class="panel-head"><h3>Payslip History</h3></div><div class="table-wrap"><table><thead><tr><th>Month</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead><tbody id="payslipHistoryBody"></tbody></table></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/js/pageTransitions.js"></script>
+  <script src="/js/staffIcons.js"></script>
+  <script src="/js/staffPortal.js"></script>
+</body>
+</html>

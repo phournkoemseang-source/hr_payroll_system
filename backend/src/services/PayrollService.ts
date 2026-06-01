@@ -40,6 +40,15 @@ export class PayrollService {
     return { payroll, month, year, total: payroll.length };
   }
 
+  public async getStaffPayslip(userId: number, month: number, year: number) {
+    const [payslip, history] = await Promise.all([
+      this.payrollRepository.findStaffPayslip(userId, month, year),
+      this.payrollRepository.findStaffPayslipHistory(userId),
+    ]);
+
+    return { payslip, history };
+  }
+
   public async deletePeriod(month: number, year: number): Promise<number> {
     return this.payrollRepository.deletePeriod(month, year);
   }
