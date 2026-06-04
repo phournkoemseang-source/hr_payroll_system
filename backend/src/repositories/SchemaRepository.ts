@@ -14,6 +14,7 @@ export abstract class SchemaRepository extends BaseRepository {
         phone_number VARCHAR(50) NULL,
         address VARCHAR(255) NULL,
         date_of_birth DATE NULL,
+        profile_photo LONGTEXT NULL,
         start_date DATE NULL,
         base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
         status ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -35,6 +36,10 @@ export abstract class SchemaRepository extends BaseRepository {
     await this.ensureEmployeeProfileColumn(
       "date_of_birth",
       "ALTER TABLE employee_profiles ADD COLUMN date_of_birth DATE NULL AFTER address",
+    );
+    await this.ensureEmployeeProfileColumn(
+      "profile_photo",
+      "ALTER TABLE employee_profiles ADD COLUMN profile_photo LONGTEXT NULL AFTER date_of_birth",
     );
     await this.seedMissingEmployeeProfiles();
   }

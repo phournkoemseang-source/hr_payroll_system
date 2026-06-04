@@ -92,7 +92,6 @@
       </nav>
       <div class="side-footer">
         <div class="user-block"><div class="avatar" id="avatarInitial">S</div><div><strong id="sidebarName">-</strong><span>Staff</span></div></div>
-        <button class="logout" id="logoutButton" type="button" aria-label="Logout"><span class="button-icon" data-icon="logout"></span><span>Logout</span></button>
       </div>
     </aside>
     <main>
@@ -135,6 +134,7 @@
                     <th>Dates</th>
                     <th>Days</th>
                     <th>Status</th>
+                    <th>Notes</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -146,6 +146,53 @@
       </section>
     </main>
   </div>
+  <div class="modal-backdrop" id="statusModal" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+      <div class="modal-head">
+        <h3 id="statusModalTitle">Leave Request Details</h3>
+        <p id="statusModalSubtitle">Review your request status and notes.</p>
+      </div>
+      <div class="modal-body">
+        <div class="detail-group">
+          <label>Status</label>
+          <div id="modalStatus" class="status">Pending</div>
+        </div>
+        <div class="detail-group">
+          <label>Leave Type</label>
+          <div id="modalType" style="font-weight: 600;">-</div>
+        </div>
+        <div class="detail-group">
+          <label>Duration</label>
+          <div id="modalDuration" style="font-weight: 600;">-</div>
+        </div>
+        <div class="detail-group">
+          <label>Your Reason</label>
+          <div id="modalReason" style="color: #42526b; line-height: 1.5;">-</div>
+        </div>
+        <div class="detail-group" id="reviewerNoteGroup">
+          <label>HR Note</label>
+          <div id="modalReviewerNote" style="color: #2457f5; font-weight: 600; line-height: 1.5; padding: 12px; background: #f0f7ff; border-radius: 8px;">-</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn primary" id="statusClose" type="button" style="width: 100%;">Close</button>
+      </div>
+    </section>
+  </div>
+  <style>
+    .detail-group { margin-bottom: 20px; }
+    .detail-group label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: #8796ba; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 24px; background: rgba(7, 17, 38, .46); backdrop-filter: blur(6px); }
+    .modal-backdrop.active { display: grid; }
+    .modal { width: min(480px, 100%); border: 1px solid #dbe3ef; border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(7, 17, 38, .28); overflow: hidden; animation: modalIn .22s ease both; }
+    .modal-head { padding: 24px 28px 20px; border-bottom: 1px solid #e5ebf3; }
+    .modal-head h3 { font-size: 22px; font-weight: 800; }
+    .modal-head p { margin-top: 6px; color: #8796ba; font-weight: 600; }
+    .modal-body { padding: 24px 28px; display: grid; }
+    .modal-actions { padding: 20px 28px 24px; border-top: 1px solid #e5ebf3; }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  </style>
+
   <script src="/js/pageTransitions.js"></script>
   <script src="/js/staffIcons.js"></script>
   <script src="/js/staffPortal.js"></script>

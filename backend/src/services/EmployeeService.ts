@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import {
   CreateEmployeeRequest,
   Employee,
+  UpdateOwnProfileRequest,
   UpdateEmployeeRequest,
 } from "../models/Employee";
 import { EmployeeRepository } from "../repositories/EmployeeRepository";
@@ -67,8 +68,27 @@ export class EmployeeService {
 
   public async updateOwnProfile(
     userId: number,
-    data: { phoneNumber?: string | null; address?: string | null; dateOfBirth?: string | null },
-  ): Promise<boolean> {
-    return this.employeeRepository.updateOwnProfile(userId, data);
+    data: UpdateOwnProfileRequest,
+  ): Promise<Employee | "invalid_name" | "invalid_photo" | null> {
+    const name = typeof data.name === "string" ? data.name.trim() : undefined;
+    if (name !== undefined && name.length < 2) {
+      return "invalid_name";
+    }
+
+    const profilePhoto = data.profilePhoto || null;
+    if (profilePhoto && !this.isValidProfilePhoto(profilePhoto)) {
+      return "invalid_photo";
+    }
+
+    return this.employeeRepository.updateOwnProfile(userId, {
+      ...data,
+      name,
+      profilePhoto,
+    });
+  }
+
+  private isValidProfilePhoto(value: string): boolean {
+    return /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(value)
+      && value.length <= 2_000_000;
   }
 }

@@ -9,6 +9,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap"
     rel="stylesheet" />
+  <link rel="stylesheet" href="/css/staffPortal.css" />
   <style>
     *,
     *::before,
@@ -239,6 +240,16 @@
       place-items: center;
       font-size: 32px;
       font-weight: 800;
+      overflow: hidden;
+    }
+
+    .avatar img,
+    .big-avatar img,
+    .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .hero h2 {
@@ -364,11 +375,16 @@
     }
 
     input,
-    textarea {
+    textarea,
+    .file-input {
       border: 1px solid #cbd6e6;
       border-radius: 8px;
       min-height: 46px;
       padding: 0 12px;
+    }
+
+    input[type="file"] {
+      padding: 10px 12px;
     }
 
     textarea {
@@ -381,6 +397,45 @@
       display: flex;
       justify-content: flex-end;
       gap: 10px;
+    }
+
+.photo-row {
+       display: flex;
+       align-items: center;
+       gap: 16px;
+     }
+
+     .photo-dropzone {
+       border: 2px dashed #cbd6e6;
+       border-radius: 8px;
+       padding: 16px;
+       transition: border-color 0.2s, background 0.2s;
+     }
+
+     .photo-dropzone.dragover {
+       border-color: #2457f5;
+       background: #f0f4ff;
+     }
+
+     .drop-hint {
+       display: block;
+       text-align: center;
+       font-size: 12px;
+       color: #91a0bb;
+       margin-top: 8px;
+     }
+
+    .photo-preview {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: #2457f5;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      flex: 0 0 auto;
+      overflow: hidden;
     }
 
     .primary {
@@ -460,17 +515,17 @@
       </div>
       <nav class="nav">
         <div class="side-title">My Space</div><a data-nav href="/staff/dashboard.html"><span
-            class="ico">▦</span>Dashboard</a><a class="active" data-nav href="/staff/profile.html"><span
-            class="ico">♙</span>My Profile</a><a data-nav href="/staff/attendanceTracking.html"><span
-            class="ico">□</span>My Attendance</a><a data-nav href="/staff/LeaveRequest.html"><span
-            class="ico">▱</span>My Leave</a><a data-nav href="/staff/payslip.html"><span class="ico">$</span>My
+            class="ico" data-icon="dashboard"></span>Dashboard</a><a class="active" data-nav href="/staff/profile.html"><span
+            class="ico" data-icon="user"></span>My Profile</a><a data-nav href="/staff/attendanceTracking.html"><span
+            class="ico" data-icon="calendar"></span>My Attendance</a><a data-nav href="/staff/LeaveRequest.html"><span
+            class="ico" data-icon="leave"></span>My Leave</a><a data-nav href="/staff/payslip.html"><span class="ico" data-icon="payslip"></span>My
           Payslip</a>
       </nav>
       <div class="side-footer">
         <div class="user-block">
           <div class="avatar" id="avatarInitial">S</div>
           <div><strong id="sidebarName">-</strong><span>Staff</span></div>
-        </div><button class="logout" id="logoutButton" type="button">↪</button>
+        </div><button class="logout" id="logoutButton" type="button" aria-label="Logout"><span class="button-icon" data-icon="logout"></span><span>Logout</span></button>
       </div>
     </aside>
     <main>
@@ -481,7 +536,7 @@
             hidden>Staff</span>
         </div>
         <div class="actions"><input class="search" id="globalSearch" type="search" placeholder="Search..." /><button
-            class="bell" id="notificationButton" type="button">♢</button></div>
+            class="bell" id="notificationButton" type="button" aria-label="Notifications"><span data-icon="bell"></span></button></div>
       </header>
       <section class="page">
         <div class="hero">
@@ -523,20 +578,33 @@
     </main>
   </div>
   <div class="modal" id="editProfileModal" role="dialog" aria-modal="true">
-    <div class="dialog">
-      <div class="panel-head">
-        <h3>Edit Profile</h3><button class="btn" id="closeModalBtn" type="button">Close</button>
-      </div>
-      <form id="editProfileForm">
-        <div class="alert" id="profileAlert"></div><label>Phone Number<input name="phoneNumber"
-            type="tel" /></label><label>Address<textarea name="address"></textarea></label><label>Date of Birth<input
-            name="dateOfBirth" type="date" /></label>
-        <div class="dialog-actions"><button class="btn" id="cancelEditBtn" type="button">Cancel</button><button
-            class="btn primary" id="saveProfileBtn" type="submit">Save Changes</button></div>
-      </form>
-    </div>
+<div class="dialog">
+       <div class="panel-head">
+         <h3>Edit Profile</h3><button class="btn" id="closeModalBtn" type="button">Close</button>
+       </div>
+       <form id="editProfileForm">
+         <div class="alert" id="profileAlert"></div>
+         <div class="photo-dropzone" id="photoDropzone">
+           <div class="photo-row">
+             <div class="photo-preview" id="photoPreview">SC</div>
+             <label style="flex:1">Profile Picture
+               <input name="profilePhotoFile" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
+             </label>
+           </div>
+           <span class="drop-hint">Drag & drop a PNG or JPG image here</span>
+         </div>
+         <input name="profilePhoto" type="hidden" />
+         <label>Full Name<input name="name" type="text" autocomplete="name" /></label>
+         <label>Phone Number<input name="phoneNumber" type="tel" autocomplete="tel" /></label>
+         <label>Address<textarea name="address" autocomplete="street-address"></textarea></label>
+         <label>Date of Birth<input name="dateOfBirth" type="date" /></label>
+         <div class="dialog-actions"><button class="btn" id="cancelEditBtn" type="button">Cancel</button><button
+             class="btn primary" id="saveProfileBtn" type="submit">Save Changes</button></div>
+       </form>
+     </div>
   </div>
   <script src="/js/pageTransitions.js"></script>
+  <script src="/js/staffIcons.js"></script>
   <script src="/js/staffPortal.js"></script>
 </body>
 

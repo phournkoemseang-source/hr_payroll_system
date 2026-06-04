@@ -7,6 +7,10 @@ export interface Employee {
   loginPassword: string | null;
   department: string;
   position: string;
+  phoneNumber: string | null;
+  address: string | null;
+  dateOfBirth: string | null;
+  profilePhoto: string | null;
   startDate: string | null;
   salary: number;
   status: EmployeeStatus;
@@ -32,4 +36,12 @@ export interface UpdateEmployeeRequest {
   startDate?: string | null;
   salary: string | number;
   status: EmployeeStatus;
+}
+
+export interface UpdateOwnProfileRequest {
+  name?: string;
+  phoneNumber?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  profilePhoto?: string | null;
 }

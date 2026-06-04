@@ -41,6 +41,7 @@ export interface StaffDashboardProfile {
   phoneNumber: string | null;
   address: string | null;
   dateOfBirth: string | null;
+  profilePhoto: string | null;
   department: string;
   position: string;
   startDate: string | null;

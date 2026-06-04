@@ -30,6 +30,8 @@ class LeaveRequestPage {
   private readonly role = document.body.dataset.role as LeaveRole;
   private readonly token = this.getStoredToken();
   private readonly user = this.getStoredUser();
+  private rejectingId: string | null = null;
+  private staffRequests: LeaveRequestItem[] = [];
 
   public init(): void {
     if (!this.user || !this.token || this.user.role !== this.role) {
@@ -39,7 +41,6 @@ class LeaveRequestPage {
 
     this.setText("userName", this.user.name);
     this.setText("userRole", this.label(this.user.role));
-    this.setText("userInitial", this.initials(this.user.name));
     this.setText("avatarInitial", this.initials(this.user.name));
     this.getOptional<HTMLButtonElement>("logoutButton")?.addEventListener("click", () => this.logout());
 
@@ -54,13 +55,52 @@ class LeaveRequestPage {
   }
 
   private bindStaff(): void {
-    const form = this.getElement<HTMLFormElement>("leaveForm");
-    const startDate = this.getElement<HTMLInputElement>("startDate");
-    const endDate = this.getElement<HTMLInputElement>("endDate");
-    const minDate = new Date().toISOString().slice(0, 10);
-    startDate.min = minDate;
-    endDate.min = minDate;
-    form.addEventListener("submit", (event) => void this.submitLeave(event));
+    const form = this.getOptional<HTMLFormElement>("leaveForm");
+    if (form) {
+      const startDate = this.getElement<HTMLInputElement>("startDate");
+      const endDate = this.getElement<HTMLInputElement>("endDate");
+      const minDate = new Date().toISOString().slice(0, 10);
+      startDate.min = minDate;
+      endDate.min = minDate;
+      form.addEventListener("submit", (event) => void this.submitLeave(event));
+    }
+
+    this.getOptional<HTMLButtonElement>("statusClose")?.addEventListener("click", () => this.closeStatusModal());
+  }
+
+  private closeStatusModal(): void {
+    const modal = this.getOptional<HTMLElement>("statusModal");
+    if (modal) {
+      modal.classList.remove("active");
+      modal.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  private showStatusModal(id: string): void {
+    const request = this.staffRequests.find((r) => String(r.id) === id);
+    if (!request) return;
+
+    const modal = this.getElement<HTMLElement>("statusModal");
+    this.setText("modalStatus", this.label(request.status));
+    const statusEl = this.getElement<HTMLElement>("modalStatus");
+    statusEl.className = `status ${request.status}`;
+
+    this.setText("modalType", this.label(request.leaveType));
+    this.setText("modalDuration", `${this.dateRange(request)} (${request.totalDays} days)`);
+    this.setText("modalReason", request.reason);
+    
+    const noteGroup = this.getOptional<HTMLElement>("reviewerNoteGroup");
+    if (noteGroup) {
+      if (request.reviewerNote) {
+        noteGroup.style.display = "block";
+        this.setText("modalReviewerNote", request.reviewerNote);
+      } else {
+        noteGroup.style.display = "none";
+      }
+    }
+
+    modal.classList.add("active");
+    modal.setAttribute("aria-hidden", "false");
   }
 
   private bindAdmin(): void {
@@ -71,6 +111,55 @@ class LeaveRequestPage {
         void this.loadAdminRequests(button.dataset.statusFilter || "");
       });
     });
+
+    this.getOptional<HTMLButtonElement>("rejectCancel")?.addEventListener("click", () => this.closeRejectModal());
+    this.getOptional<HTMLButtonElement>("rejectConfirm")?.addEventListener("click", () => void this.confirmRejection());
+  }
+
+  private closeRejectModal(): void {
+    const modal = this.getOptional<HTMLElement>("rejectModal");
+    if (modal) {
+      modal.classList.remove("active");
+      modal.setAttribute("aria-hidden", "true");
+    }
+    this.rejectingId = null;
+    const error = this.getOptional<HTMLElement>("rejectModalError");
+    if (error) error.textContent = "";
+    const reason = this.getOptional<HTMLTextAreaElement>("rejectReason");
+    if (reason) reason.value = "";
+  }
+
+  private async confirmRejection(): Promise<void> {
+    if (!this.rejectingId) return;
+
+    const reasonInput = this.getElement<HTMLTextAreaElement>("rejectReason");
+    const note = reasonInput.value.trim();
+    const errorElement = this.getElement<HTMLElement>("rejectModalError");
+
+    if (note.length < 3) {
+      errorElement.textContent = "Please provide a reason (at least 3 characters).";
+      return;
+    }
+
+    const confirmBtn = this.getElement<HTMLButtonElement>("rejectConfirm");
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Rejecting...";
+
+    try {
+      await this.fetchJson(`/api/leave-requests/admin/${this.rejectingId}/reject`, {
+        method: "PATCH",
+        body: JSON.stringify({ note }),
+      });
+      this.closeRejectModal();
+      this.showAlert("Leave request rejected.", "success");
+      const activeFilter = document.querySelector<HTMLElement>("[data-status-filter].active")?.dataset.statusFilter || "";
+      await this.loadAdminRequests(activeFilter);
+    } catch (err) {
+      errorElement.textContent = err instanceof Error ? err.message : "Unable to reject request.";
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Reject Request";
+    }
   }
 
   private async submitLeave(event: SubmitEvent): Promise<void> {
@@ -105,6 +194,7 @@ class LeaveRequestPage {
   private async loadStaffRequests(): Promise<void> {
     try {
       const data = await this.fetchJson<{ requests: LeaveRequestItem[] }>("/api/leave-requests/staff");
+      this.staffRequests = data.requests;
       this.renderStaffRequests(data.requests);
     } catch (err) {
       this.showAlert(err instanceof Error ? err.message : "Unable to load leave requests.", "error");
@@ -140,13 +230,22 @@ class LeaveRequestPage {
         <td>${this.dateRange(request)}</td>
         <td>${request.totalDays}</td>
         <td><span class="status ${request.status}">${this.label(request.status)}</span></td>
-        <td>${this.escapeHtml(request.status === "rejected" ? request.reviewerNote || "-" : request.reason)}</td>
-        <td>${request.canCancel ? `<button class="btn danger" data-cancel-id="${request.id}" type="button">Cancel</button>` : "-"}</td>
+        <td><div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(request.status === "rejected" ? request.reviewerNote || "-" : request.reason)}</div></td>
+        <td>
+          <div class="actions">
+            <button class="btn" data-view-id="${request.id}" type="button">View</button>
+            ${request.canCancel ? `<button class="btn danger" data-cancel-id="${request.id}" type="button">Cancel</button>` : ""}
+          </div>
+        </td>
       </tr>
     `).join("");
 
     body.querySelectorAll<HTMLButtonElement>("[data-cancel-id]").forEach((button) => {
       button.addEventListener("click", () => void this.cancelRequest(button.dataset.cancelId || ""));
+    });
+
+    body.querySelectorAll<HTMLButtonElement>("[data-view-id]").forEach((button) => {
+      button.addEventListener("click", () => this.showStatusModal(button.dataset.viewId || ""));
     });
   }
 
@@ -189,22 +288,25 @@ class LeaveRequestPage {
   }
 
   private async reviewRequest(id: string, action: "approve" | "reject"): Promise<void> {
-    const note = action === "reject" ? window.prompt("Reason for rejection") || "" : "";
-    if (action === "reject" && note.trim().length < 3) {
-      this.showAlert("A rejection reason is required.", "error");
+    if (action === "reject") {
+      this.rejectingId = id;
+      const modal = this.getElement<HTMLElement>("rejectModal");
+      modal.classList.add("active");
+      modal.setAttribute("aria-hidden", "false");
+      this.getElement<HTMLTextAreaElement>("rejectReason").focus();
       return;
     }
 
     try {
-      await this.fetchJson(`/api/leave-requests/admin/${id}/${action}`, {
+      await this.fetchJson(`/api/leave-requests/admin/${id}/approve`, {
         method: "PATCH",
-        body: JSON.stringify({ note }),
+        body: JSON.stringify({ note: "" }),
       });
-      this.showAlert(`Leave request ${action === "approve" ? "approved" : "rejected"}.`, "success");
+      this.showAlert("Leave request approved.", "success");
       const activeFilter = document.querySelector<HTMLElement>("[data-status-filter].active")?.dataset.statusFilter || "";
       await this.loadAdminRequests(activeFilter);
     } catch (err) {
-      this.showAlert(err instanceof Error ? err.message : `Unable to ${action} request.`, "error");
+      this.showAlert(err instanceof Error ? err.message : `Unable to approve request.`, "error");
     }
   }
 

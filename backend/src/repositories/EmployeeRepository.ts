@@ -3,6 +3,7 @@ import {
   CreateEmployeeRequest,
   Employee,
   EmployeeStatus,
+  UpdateOwnProfileRequest,
   UpdateEmployeeRequest,
 } from "../models/Employee";
 import { SchemaRepository } from "./SchemaRepository";
@@ -14,6 +15,10 @@ interface EmployeeRow extends RowDataPacket {
   loginPassword: string | null;
   department: string;
   position: string;
+  phoneNumber: string | null;
+  address: string | null;
+  dateOfBirth: string | null;
+  profilePhoto: string | null;
   startDate: string | null;
   salary: number | string;
   status: EmployeeStatus;
@@ -33,6 +38,10 @@ export class EmployeeRepository extends SchemaRepository {
         u.login_password AS loginPassword,
         ep.department,
         ep.position,
+        ep.phone_number AS phoneNumber,
+        ep.address,
+        DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
+        ep.profile_photo AS profilePhoto,
         DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
         ep.base_salary AS salary,
         ep.status
@@ -54,6 +63,10 @@ export class EmployeeRepository extends SchemaRepository {
           u.login_password AS loginPassword,
           ep.department,
           ep.position,
+          ep.phone_number AS phoneNumber,
+          ep.address,
+          DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
+          ep.profile_photo AS profilePhoto,
           DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
           ep.base_salary AS salary,
           ep.status
@@ -67,6 +80,7 @@ export class EmployeeRepository extends SchemaRepository {
   }
 
   public async findByEmail(email: string): Promise<Employee | null> {
+    await this.ensureSchema();
     const rows = await this.query<EmployeeRow[]>(
       `
         SELECT u.id,
@@ -75,6 +89,10 @@ export class EmployeeRepository extends SchemaRepository {
           u.login_password AS loginPassword,
           ep.department,
           ep.position,
+          ep.phone_number AS phoneNumber,
+          ep.address,
+          DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
+          ep.profile_photo AS profilePhoto,
           DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
           ep.base_salary AS salary,
           ep.status
@@ -193,23 +211,34 @@ export class EmployeeRepository extends SchemaRepository {
 
   public async updateOwnProfile(
     userId: number,
-    data: { phoneNumber?: string | null; address?: string | null; dateOfBirth?: string | null },
-  ): Promise<boolean> {
+    data: UpdateOwnProfileRequest,
+  ): Promise<Employee | null> {
     await this.ensureSchema();
-    const result = await this.execute(
-      `
-        UPDATE employee_profiles
-        SET phone_number = ?, address = ?, date_of_birth = ?
-        WHERE user_id = ?
-      `,
-      [
-        data.phoneNumber?.trim() || null,
-        data.address?.trim() || null,
-        data.dateOfBirth || null,
-        userId,
-      ],
-    );
-    return result.affectedRows > 0;
+    await this.transaction(async (connection) => {
+      if (typeof data.name === "string") {
+        await connection.execute(
+          "UPDATE users SET name = ? WHERE id = ? AND role = 'staff'",
+          [data.name.trim(), userId],
+        );
+      }
+
+      await connection.execute(
+        `
+          UPDATE employee_profiles
+          SET phone_number = ?, address = ?, date_of_birth = ?, profile_photo = ?
+          WHERE user_id = ?
+        `,
+        [
+          data.phoneNumber?.trim() || null,
+          data.address?.trim() || null,
+          data.dateOfBirth || null,
+          data.profilePhoto || null,
+          userId,
+        ],
+      );
+    });
+
+    return await this.findById(userId);
   }
 
   private toEmployee(row: EmployeeRow): Employee {
@@ -220,6 +249,10 @@ export class EmployeeRepository extends SchemaRepository {
       loginPassword: row.loginPassword,
       department: row.department,
       position: row.position,
+      phoneNumber: row.phoneNumber,
+      address: row.address,
+      dateOfBirth: row.dateOfBirth,
+      profilePhoto: row.profilePhoto,
       startDate: row.startDate,
       salary: Number(row.salary || 0),
       status: row.status,

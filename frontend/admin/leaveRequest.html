@@ -54,6 +54,20 @@
     .alert.success { display: block; background: #dcfce7; color: #166534; border: 1px solid #86efac; }
     .alert.error { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .empty { color: #64748b; padding: 20px; text-align: center; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 24px; background: rgba(7, 17, 38, .46); backdrop-filter: blur(6px); }
+    .modal-backdrop.active { display: grid; }
+    .modal { width: min(520px, 100%); border: 1px solid #dbe3ef; border-radius: 8px; background: #fff; box-shadow: 0 24px 70px rgba(7, 17, 38, .28); overflow: hidden; animation: modalIn .22s ease both; }
+    .modal-head { padding: 24px 26px 18px; border-bottom: 1px solid #e5ebf3; }
+    .modal-head h3 { font-size: 22px; font-weight: 800; }
+    .modal-head p { margin-top: 7px; color: #8796ba; font-weight: 600; }
+    .modal-body { padding: 22px 26px; display: grid; gap: 10px; }
+    .modal-body label { color: #42526b; font-weight: 800; }
+    .modal textarea { min-height: 130px; border: 1px solid #cbd6e6; border-radius: 8px; padding: 13px 14px; resize: vertical; color: #172033; font: inherit; outline: none; }
+    .modal textarea:focus { border-color: #2457f5; box-shadow: 0 0 0 3px rgba(36, 87, 245, .12); }
+    .modal-error { min-height: 20px; color: #dc2626; font-size: 13px; font-weight: 800; }
+    .modal-actions { padding: 18px 26px 24px; border-top: 1px solid #e5ebf3; display: flex; justify-content: flex-end; gap: 10px; }
+    .modal-actions .btn { min-width: 108px; }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     svg { width: 21px; height: 21px; }
     @media (max-width: 1050px) {
       .app { grid-template-columns: 1fr; }
@@ -119,7 +133,6 @@
           <h2>Leave Requests</h2>
           <p class="muted">Review staff leave</p>
         </div>
-        <button class="btn danger" id="logoutButton" type="button">Sign Out</button>
       </header>
       <section class="page">
         <div>
@@ -155,7 +168,25 @@
       </section>
     </main>
   </div>
+  <div class="modal-backdrop" id="rejectModal" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+      <div class="modal-head">
+        <h3 id="rejectModalTitle">Reject Leave Request</h3>
+        <p id="rejectModalSubtitle">Add a clear reason for the staff member.</p>
+      </div>
+      <div class="modal-body">
+        <label for="rejectReason">Reason for rejection</label>
+        <textarea id="rejectReason" maxlength="500" placeholder="Example: Schedule conflict during payroll week"></textarea>
+        <div class="modal-error" id="rejectModalError"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="rejectCancel" type="button">Cancel</button>
+        <button class="btn danger" id="rejectConfirm" type="button">Reject Request</button>
+      </div>
+    </section>
+  </div>
   <script src="/js/pageTransitions.js"></script>
+  <script src="/js/adminNotifications.js"></script>
   <script src="/js/leaveRequest.js"></script>
 </body>
 </html>

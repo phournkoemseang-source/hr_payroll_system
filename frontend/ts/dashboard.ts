@@ -131,6 +131,8 @@ class DashboardPage {
   private readonly userRole = this.getElement<HTMLElement>("userRole");
   private readonly logoutButton = this.getElement<HTMLButtonElement>("logoutButton");
   private readonly page = document.body.dataset.page || "dashboard";
+  private dashboardRefreshTimer: number | null = null;
+  private dashboardLoading = false;
 
   public init(): void {
     const expectedRole = document.body.dataset.role as DashboardRole;
@@ -165,15 +167,33 @@ class DashboardPage {
     }
 
     void this.loadDashboard();
+    if (expectedRole === "admin") {
+      this.dashboardRefreshTimer = window.setInterval(() => void this.loadDashboard(true), 30000);
+      window.addEventListener("beforeunload", () => {
+        if (this.dashboardRefreshTimer !== null) {
+          window.clearInterval(this.dashboardRefreshTimer);
+        }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          void this.loadDashboard(true);
+        }
+      });
+    }
   }
 
-  private async loadDashboard(): Promise<void> {
+  private async loadDashboard(silent = false): Promise<void> {
+    if (this.dashboardLoading) {
+      return;
+    }
+
     const token = this.getStoredToken();
     if (!token) {
       window.pageTransitions.replace("/login.html", "Opening sign in");
       return;
     }
 
+    this.dashboardLoading = true;
     try {
       const response = await fetch("/api/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
@@ -197,21 +217,25 @@ class DashboardPage {
       this.renderStaffSummary(data.staff);
       this.setOptionalText("dashboardStatus", "Live from MySQL");
     } catch {
-      this.setOptionalText("dashboardStatus", "Unable to connect to server.");
+      if (!silent) {
+        this.setOptionalText("dashboardStatus", "Unable to connect to server.");
+      }
+    } finally {
+      this.dashboardLoading = false;
     }
   }
 
   private renderStats(stats: DashboardStats): void {
-    this.setOptionalText("totalEmployees", String(stats.totalEmployees));
+    this.animateNumber("totalEmployees", stats.totalEmployees);
     this.setOptionalText(
       "employeesAddedThisMonth",
       `+${stats.employeesAddedThisMonth} this month`,
     );
-    this.setOptionalText("presentToday", String(stats.presentToday));
-    this.setOptionalText("attendanceRate", `${stats.attendanceRate}%`);
-    this.setOptionalText("pendingLeaveRequests", String(stats.pendingLeaveRequests));
-    this.setOptionalText("leaveCountBadge", String(stats.pendingLeaveRequests));
-    this.setOptionalText("totalPayroll", this.formatMoney(stats.totalPayroll));
+    this.animateNumber("presentToday", stats.presentToday);
+    this.animateNumber("attendanceRate", stats.attendanceRate, (value) => `${value}%`);
+    this.animateNumber("pendingLeaveRequests", stats.pendingLeaveRequests);
+    this.setBadgeText("leaveCountBadge", stats.pendingLeaveRequests);
+    this.animateNumber("totalPayroll", stats.totalPayroll, (value) => this.formatMoney(value));
     this.setOptionalText(
       "payrollMonth",
       new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
@@ -226,12 +250,12 @@ class DashboardPage {
 
     const max = Math.max(...days.map((day) => day.present + day.absent), 1);
     chart.innerHTML = days
-      .map((day) => {
+      .map((day, index) => {
         const height = Math.max(12, Math.round((day.present / max) * 100));
         const className = day.present > 0 ? "bar" : "bar gray";
         return `
           <div class="bar-wrap">
-            <div class="${className}" style="height: ${height}%;">
+            <div class="${className}" style="--bar-height: ${height}%; animation-delay: ${index * 80}ms;">
               <span>${day.present}</span>
             </div>
             <div class="day">${this.escapeHtml(day.label)}</div>
@@ -323,9 +347,9 @@ class DashboardPage {
 
     try {
       const data = await this.fetchJson<DashboardResponse>("/api/dashboard");
-      this.setOptionalText("leaveCountBadge", String(data.stats.pendingLeaveRequests));
+      this.setBadgeText("leaveCountBadge", data.stats.pendingLeaveRequests);
     } catch {
-      this.setOptionalText("leaveCountBadge", "0");
+      this.setBadgeText("leaveCountBadge", 0);
     }
   }
 
@@ -608,6 +632,59 @@ class DashboardPage {
     if (element) {
       element.textContent = value;
     }
+  }
+
+  private setBadgeText(id: string, count: number): void {
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
+
+    element.textContent = String(count);
+    element.hidden = count <= 0;
+  }
+
+  private animateNumber(
+    id: string,
+    target: number,
+    formatter: (value: number) => string = (value) => String(value),
+  ): void {
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      element.textContent = formatter(Math.round(target));
+      element.dataset.value = String(target);
+      return;
+    }
+
+    const start = Number(element.dataset.value ?? element.textContent?.replace(/[^0-9.-]/g, "") ?? 0) || 0;
+    const end = Number(target) || 0;
+    const duration = 850;
+    const startedAt = performance.now();
+
+    element.classList.remove("is-counting");
+    void element.offsetWidth;
+    element.classList.add("is-counting");
+
+    const step = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = start + (end - start) * eased;
+      element.textContent = formatter(Math.round(value));
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+        return;
+      }
+
+      element.textContent = formatter(Math.round(end));
+      element.dataset.value = String(end);
+      element.classList.remove("is-counting");
+    };
+
+    window.requestAnimationFrame(step);
   }
 
   private formatMoney(value: number): string {

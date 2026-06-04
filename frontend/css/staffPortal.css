@@ -2,17 +2,6 @@ body {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
-h1,
-h2,
-h3,
-.page-title h2,
-.card strong,
-.slip h3,
-.hero h2 {
-  font-family: inherit;
-  letter-spacing: 0 !important;
-}
-
 .ico,
 .nav-icon,
 .button-icon,
@@ -46,20 +35,72 @@ h3,
   place-items: center !important;
 }
 
+.bell::after {
+  display: none !important;
+}
+
 .bell svg {
   width: 22px;
   height: 22px;
 }
 
+.notification-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  border: 2px solid #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.notification-count[hidden] {
+  display: none !important;
+}
+
+.side-footer {
+  flex-wrap: nowrap;
+}
+
+.side-footer .user-block {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.side-footer .user-block > div:last-child {
+  min-width: 0;
+}
+
+.side-footer .user-block strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .logout {
   min-height: 42px !important;
   min-width: 42px;
+  flex: 0 0 auto;
   border-radius: 8px;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 0 10px;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto !important;
 }
 
 .logout span:last-child {
@@ -71,4 +112,11 @@ h3,
 .link-btn .button-icon {
   margin-right: 8px;
   vertical-align: -4px;
+}
+
+@media (max-width: 420px) {
+  .side-footer {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
 }

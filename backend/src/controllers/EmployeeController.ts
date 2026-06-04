@@ -26,13 +26,23 @@ export class EmployeeController extends BaseController {
     }
 
     await this.handle(res, "Update profile error", async () => {
-      const updated = await this.employeeService.updateOwnProfile(user.id, req.body);
-      if (!updated) {
+      const result = await this.employeeService.updateOwnProfile(user.id, req.body);
+      if (!result) {
         this.sendError(res, 404, "Staff profile not found");
         return;
       }
 
-      res.json({ message: "Profile updated." });
+      if (result === "invalid_name") {
+        this.sendError(res, 400, "Full name must be at least 2 characters");
+        return;
+      }
+
+      if (result === "invalid_photo") {
+        this.sendError(res, 400, "Profile photo must be a PNG, JPG, or WebP image under 2 MB");
+        return;
+      }
+
+      res.json({ message: "Profile updated.", employee: result });
     });
   }
 
