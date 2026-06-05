@@ -285,13 +285,32 @@ class DashboardPage {
               <span>${this.escapeHtml(leave.leaveType)} - ${this.formatDateRange(leave.startDate, leave.endDate)}</span>
             </div>
             <div class="leave-actions">
-              <button class="approve" type="button" disabled>Approve</button>
-              <button class="reject" type="button" disabled>Reject</button>
+              <button class="approve" data-id="${leave.id}" type="button">Approve</button>
+              <button class="reject" data-id="${leave.id}" type="button">Reject</button>
             </div>
           </div>
         `,
       )
       .join("");
+
+    list.querySelectorAll<HTMLButtonElement>(".approve").forEach((btn) => {
+      btn.addEventListener("click", () => this.reviewLeave(Number(btn.dataset.id), "approve"));
+    });
+    list.querySelectorAll<HTMLButtonElement>(".reject").forEach((btn) => {
+      btn.addEventListener("click", () => this.reviewLeave(Number(btn.dataset.id), "reject"));
+    });
+  }
+
+  private async reviewLeave(id: number, action: "approve" | "reject"): Promise<void> {
+    try {
+      await this.fetchJson(`/api/leave-requests/admin/${id}/${action}`, {
+        method: "PATCH",
+        body: JSON.stringify({ note: "" }),
+      });
+      void this.loadDashboard(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Action failed");
+    }
   }
 
   private renderEmployees(employees: RecentEmployee[]): void {

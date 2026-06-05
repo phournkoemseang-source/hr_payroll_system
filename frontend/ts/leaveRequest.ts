@@ -193,9 +193,27 @@ class LeaveRequestPage {
 
   private async loadStaffRequests(): Promise<void> {
     try {
-      const data = await this.fetchJson<{ requests: LeaveRequestItem[] }>("/api/leave-requests/staff");
-      this.staffRequests = data.requests;
-      this.renderStaffRequests(data.requests);
+      const [leaveData, dashboardData] = await Promise.all([
+        this.fetchJson<{ requests: LeaveRequestItem[] }>("/api/leave-requests/staff"),
+        this.fetchJson<any>("/api/dashboard"),
+      ]);
+      
+      this.staffRequests = leaveData.requests;
+      this.renderStaffRequests(leaveData.requests);
+
+      if (dashboardData.staff && dashboardData.staff.profile) {
+        const annual = dashboardData.staff.profile.annualLeaveBalance;
+        const sick = dashboardData.staff.profile.sickLeaveBalance;
+        
+        this.setText("annualText", `${annual} days left`);
+        this.setText("sickText", `${sick} days left`);
+        
+        const annualBar = this.getOptional<HTMLElement>("annualBar");
+        if (annualBar) annualBar.style.width = `${(annual / 18) * 100}%`;
+        
+        const sickBar = this.getOptional<HTMLElement>("sickBar");
+        if (sickBar) sickBar.style.width = `${(sick / 6) * 100}%`;
+      }
     } catch (err) {
       this.showAlert(err instanceof Error ? err.message : "Unable to load leave requests.", "error");
     }

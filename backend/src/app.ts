@@ -29,7 +29,8 @@ class App {
 
   private configureMiddlewares(): void {
     this.app.use(cors());
-    this.app.use(express.json());
+    this.app.use(express.json({ limit: "5mb" }));
+    this.app.use(express.urlencoded({ limit: "5mb", extended: true }));
     this.app.use(express.static(path.join(__dirname, "../frontend")));
   }
 

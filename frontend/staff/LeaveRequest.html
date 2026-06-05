@@ -105,7 +105,12 @@
         <div class="grid">
           <section class="panel">
             <div class="panel-head"><h3>New Leave Request</h3></div>
-            <form class="panel-body" id="leaveForm">
+            <div class="panel-body">
+              <div class="balance" style="margin-bottom: 24px; display: grid; gap: 16px;">
+                <div class="balance-row"><div class="balance-line" style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 8px;">Annual Leave <span id="annualText" style="color: #2457f5;">15 days left</span></div><div class="bar" style="height: 8px; background: #e1e7f0; border-radius: 999px; overflow: hidden;"><i id="annualBar" style="display: block; height: 100%; background: #2457f5; width: 83.3%;"></i></div></div>
+                <div class="balance-row"><div class="balance-line" style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 8px;">Sick Leave <span id="sickText" style="color: #2457f5;">5 days left</span></div><div class="bar" style="height: 8px; background: #e1e7f0; border-radius: 999px; overflow: hidden;"><i id="sickBar" style="display: block; height: 100%; background: #10a876; width: 83.3%;"></i></div></div>
+              </div>
+              <form id="leaveForm" style="display: grid; gap: 18px;">
               <label>Leave Type
                 <select class="select" id="leaveType" required>
                   <option value="annual">Annual Leave</option>
@@ -123,6 +128,7 @@
               <label>Reason <textarea id="reason" maxlength="500" required></textarea></label>
               <button class="btn primary" id="submitLeave" type="submit">Submit Request</button>
             </form>
+          </div>
           </section>
           <section class="panel">
             <div class="panel-head"><h3>My Leave History</h3></div>
@@ -195,6 +201,7 @@
 
   <script src="/js/pageTransitions.js"></script>
   <script src="/js/staffIcons.js"></script>
+  <script src="/js/leaveRequest.js"></script>
   <script src="/js/staffPortal.js"></script>
 </body>
 </html>

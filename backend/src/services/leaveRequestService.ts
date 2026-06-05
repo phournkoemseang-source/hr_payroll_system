@@ -187,14 +187,25 @@ export class LeaveRequestService extends AbstractLeaveRequestService {
   }
 
   private calculateInclusiveDays(startDate: string, endDate: string): number {
-    const start = Date.parse(`${startDate}T00:00:00Z`);
-    const end = Date.parse(`${endDate}T00:00:00Z`);
+    const start = new Date(`${startDate}T00:00:00Z`);
+    const end = new Date(`${endDate}T00:00:00Z`);
 
-    if (Number.isNaN(start) || Number.isNaN(end)) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       return 0;
     }
 
-    return Math.floor((end - start) / 86_400_000) + 1;
+    let count = 0;
+    const current = new Date(start);
+    while (current <= end) {
+      const dayOfWeek = current.getUTCDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        // 0 = Sunday, 6 = Saturday
+        count++;
+      }
+      current.setUTCDate(current.getUTCDate() + 1);
+    }
+
+    return count;
   }
 
   private isBeforeToday(value: string): boolean {

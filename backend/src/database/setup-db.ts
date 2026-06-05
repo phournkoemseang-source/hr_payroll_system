@@ -80,6 +80,8 @@ class DatabaseSetup {
         profile_photo LONGTEXT NULL,
         start_date  DATE NULL,
         base_salary DECIMAL(12,2) NOT NULL DEFAULT 0,
+        annual_leave_balance INT NOT NULL DEFAULT 18,
+        sick_leave_balance INT NOT NULL DEFAULT 6,
         status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_employee_profiles_user
@@ -174,6 +176,21 @@ class DatabaseSetup {
           ON DELETE CASCADE
       )
     `);
+
+    // Notifications table
+    await db.query(`
+      CREATE TABLE notifications (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        user_id    INT NOT NULL,
+        title      VARCHAR(255) NOT NULL,
+        message    TEXT NOT NULL,
+        is_read    BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_notifications_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE
+      )
+    `);
   }
 
   private async seedData(db: mysql.Connection): Promise<void> {
@@ -197,9 +214,9 @@ class DatabaseSetup {
 
     // Insert employee profiles
     await db.query(
-      `INSERT IGNORE INTO employee_profiles (user_id, department, position, start_date, base_salary, status) VALUES
-        (1, 'HR', 'Administrator', CURDATE(), 0, 'active'),
-        (2, 'Operations', 'Staff', CURDATE(), 500, 'active')`,
+      `INSERT IGNORE INTO employee_profiles (user_id, department, position, start_date, base_salary, annual_leave_balance, sick_leave_balance, status) VALUES
+        (1, 'HR', 'Administrator', CURDATE(), 0, 18, 6, 'active'),
+        (2, 'Operations', 'Staff', CURDATE(), 500, 15, 5, 'active')`,
     );
 
     await db.query(

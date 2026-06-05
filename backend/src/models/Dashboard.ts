@@ -12,6 +12,7 @@ export interface AttendanceDay {
   date: string;
   present: number;
   absent: number;
+  isHoliday?: boolean;
 }
 
 export interface PendingLeaveRequest {
@@ -46,6 +47,8 @@ export interface StaffDashboardProfile {
   position: string;
   startDate: string | null;
   salary: number;
+  annualLeaveBalance: number;
+  sickLeaveBalance: number;
   status: string;
 }
 

@@ -85,6 +85,52 @@ export class DashboardRepository extends SchemaRepository {
     return Number(rows[0]?.total || 0);
   }
 
+  public async getAttendanceMonth(
+    userId: number,
+    start: string,
+    end: string,
+  ): Promise<AttendanceDay[]> {
+    const rows = await this.query<RowDataPacket[]>(
+      `
+        SELECT ar.work_date AS date,
+          SUM(CASE WHEN ar.status IN ('present', 'late') THEN 1 ELSE 0 END) AS present,
+          SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) AS absent
+        FROM attendance_records ar
+        WHERE ar.user_id = ? AND ar.work_date BETWEEN ? AND ?
+        GROUP BY ar.work_date
+        ORDER BY ar.work_date
+      `,
+      [userId, start, end],
+    );
+
+    const byDate = new Map(
+      rows.map((row) => [
+        new Date(row.date).toISOString().slice(0, 10),
+        {
+          present: Number(row.present || 0),
+          absent: Number(row.absent || 0),
+        },
+      ]),
+    );
+
+    const result: AttendanceDay[] = [];
+    let current = new Date(start);
+    const last = new Date(end);
+
+    while (current <= last) {
+      const dateStr = current.toISOString().slice(0, 10);
+      result.push({
+        label: current.toLocaleDateString("en-US", { weekday: "short" }),
+        date: dateStr,
+        present: byDate.get(dateStr)?.present || 0,
+        absent: byDate.get(dateStr)?.absent || 0,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }
+
   public async getAttendanceWeek(days: { label: string; date: string }[]): Promise<AttendanceDay[]> {
     if (days.length === 0) {
       return [];
@@ -182,6 +228,8 @@ export class DashboardRepository extends SchemaRepository {
           ep.position,
           DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
           ep.base_salary AS salary,
+          ep.annual_leave_balance AS annualLeaveBalance,
+          ep.sick_leave_balance AS sickLeaveBalance,
           ep.status
         FROM users u
         INNER JOIN employee_profiles ep ON ep.user_id = u.id
@@ -203,6 +251,8 @@ export class DashboardRepository extends SchemaRepository {
           position: rows[0].position,
           startDate: rows[0].startDate,
           salary: Number(rows[0].salary || 0),
+          annualLeaveBalance: Number(rows[0].annualLeaveBalance || 0),
+          sickLeaveBalance: Number(rows[0].sickLeaveBalance || 0),
           status: rows[0].status,
         }
       : null;

@@ -92,13 +92,34 @@ export class LeaveRequestRepository extends SchemaRepository {
     reviewerNote: string | null,
   ): Promise<boolean> {
     await this.ensureSchema();
-    const result = await this.execute(
-      `UPDATE leave_requests
-       SET status = ?, reviewer_id = ?, reviewer_note = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND status = 'pending'`,
-      [status, reviewerId, reviewerNote, id],
-    );
-    return result.affectedRows === 1;
+    const request = await this.findById(id);
+    if (!request || request.status !== "pending") {
+      return false;
+    }
+
+    return await this.transaction(async (connection) => {
+      const [result] = await connection.execute<any>(
+        `UPDATE leave_requests
+         SET status = ?, reviewer_id = ?, reviewer_note = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND status = 'pending'`,
+        [status, reviewerId, reviewerNote, id],
+      );
+
+      if (result.affectedRows === 1 && status === "approved") {
+        const column = request.leaveType === "sick" ? "sick_leave_balance" : "annual_leave_balance";
+        // Only deduct for annual and sick leave types
+        if (request.leaveType === "annual" || request.leaveType === "sick") {
+          await connection.execute(
+            `UPDATE employee_profiles
+             SET ${column} = GREATEST(0, ${column} - ?)
+             WHERE user_id = ?`,
+            [request.totalDays, request.userId],
+          );
+        }
+      }
+
+      return result.affectedRows === 1;
+    });
   }
 
   private baseSelect(): string {
