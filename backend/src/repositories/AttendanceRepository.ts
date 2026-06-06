@@ -36,16 +36,11 @@ interface EmployeeRow extends RowDataPacket {
 }
 
 export class AttendanceRepository extends SchemaRepository {
-  public async ensureSchema(): Promise<void> {
-    await this.ensureAttendanceSchema();
-  }
-
   public async findEmployees(): Promise<AttendanceEmployee[]> {
-    await this.ensureSchema();
     const rows = await this.query<EmployeeRow[]>(`
-      SELECT u.id, u.name, u.email, u.role, COALESCE(ep.department, 'Operations') AS department
+      SELECT u.id, u.name, u.email, u.role, COALESCE(e.department, 'Management') AS department
       FROM users u
-      LEFT JOIN employee_profiles ep ON ep.user_id = u.id
+      LEFT JOIN employees e ON e.user_id = u.id
       WHERE u.role = 'staff'
       ORDER BY u.name ASC
     `);
@@ -59,15 +54,14 @@ export class AttendanceRepository extends SchemaRepository {
   }
 
   public async findRecordsByDate(date: string): Promise<AttendanceRecord[]> {
-    await this.ensureSchema();
     const rows = await this.query<AttendanceRecordRow[]>(
       `
         SELECT ar.id, ar.user_id, u.name AS employee_name, u.email AS employee_email,
-          COALESCE(ep.department, 'Operations') AS department, ar.work_date,
+          COALESCE(e.department, 'Management') AS department, ar.work_date,
           ar.status, ar.note, ar.updated_by, ar.updated_at
         FROM attendance_records ar
         INNER JOIN users u ON u.id = ar.user_id
-        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
+        LEFT JOIN employees e ON e.user_id = u.id
         WHERE ar.work_date = ?
         ORDER BY u.name ASC
       `,
@@ -77,15 +71,14 @@ export class AttendanceRepository extends SchemaRepository {
   }
 
   public async findRecordsForUser(userId: number, month: number, year: number): Promise<AttendanceRecord[]> {
-    await this.ensureSchema();
     const rows = await this.query<AttendanceRecordRow[]>(
       `
         SELECT ar.id, ar.user_id, u.name AS employee_name, u.email AS employee_email,
-          COALESCE(ep.department, 'Operations') AS department, ar.work_date,
+          COALESCE(e.department, 'Management') AS department, ar.work_date,
           ar.status, ar.note, ar.updated_by, ar.updated_at
         FROM attendance_records ar
         INNER JOIN users u ON u.id = ar.user_id
-        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
+        LEFT JOIN employees e ON e.user_id = u.id
         WHERE ar.user_id = ? AND MONTH(ar.work_date) = ? AND YEAR(ar.work_date) = ?
         ORDER BY ar.work_date DESC
       `,
@@ -101,7 +94,6 @@ export class AttendanceRepository extends SchemaRepository {
     note: string | null,
     updatedBy: number,
   ): Promise<void> {
-    await this.ensureSchema();
     await this.execute(
       `
         INSERT INTO attendance_records (user_id, work_date, status, note, updated_by)
@@ -117,9 +109,8 @@ export class AttendanceRepository extends SchemaRepository {
   }
 
   public async getMonthlySummary(month: number, year: number, department?: string): Promise<AttendanceSummaryRow[]> {
-    await this.ensureSchema();
     const params: unknown[] = [month, year];
-    const departmentFilter = department ? "AND COALESCE(ep.department, 'Operations') = ?" : "";
+    const departmentFilter = department ? "AND COALESCE(e.department, 'Management') = ?" : "";
     if (department) {
       params.push(department);
     }
@@ -127,21 +118,21 @@ export class AttendanceRepository extends SchemaRepository {
     const rows = await this.query<AttendanceSummaryRowPacket[]>(
       `
         SELECT u.id AS user_id, u.name AS employee_name, u.email AS employee_email,
-          COALESCE(ep.department, 'Operations') AS department,
+          COALESCE(e.department, 'Management') AS department,
           SUM(CASE WHEN ar.status = 'present' THEN 1 ELSE 0 END) AS present,
           SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) AS absent,
           SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) AS late,
           SUM(CASE WHEN ar.status = 'on_leave' THEN 1 ELSE 0 END) AS on_leave,
           COUNT(ar.id) AS total_marked
         FROM users u
-        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
+        LEFT JOIN employees e ON e.user_id = u.id
         LEFT JOIN attendance_records ar
           ON ar.user_id = u.id
           AND MONTH(ar.work_date) = ?
           AND YEAR(ar.work_date) = ?
         WHERE u.role = 'staff'
         ${departmentFilter}
-        GROUP BY u.id, u.name, u.email, ep.department
+        GROUP BY u.id, u.name, u.email, e.department
         ORDER BY u.name ASC
       `,
       params,

@@ -43,17 +43,12 @@ interface StaffPayrollRow extends RowDataPacket {
 }
 
 export class PayrollRepository extends SchemaRepository {
-  public async ensureSchema(): Promise<void> {
-    await this.ensureHrSchema();
-  }
-
   public async staffExists(userId: number): Promise<boolean> {
-    await this.ensureSchema();
     const rows = await this.query<RowDataPacket[]>(
       `
         SELECT u.id
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
         WHERE u.id = ? AND u.role = 'staff'
         LIMIT 1
       `,
@@ -63,7 +58,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async findSettings(userId: number): Promise<PayrollSettings | null> {
-    await this.ensureSchema();
     const rows = await this.query<RowDataPacket[]>(
       "SELECT * FROM payroll_settings WHERE user_id = ? LIMIT 1",
       [userId],
@@ -72,7 +66,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async saveSettings(userId: number, input: PayrollSettingsInput): Promise<PayrollSettings> {
-    await this.ensureSchema();
     await this.transaction(async (connection) => {
       await connection.execute(
         `
@@ -102,7 +95,7 @@ export class PayrollRepository extends SchemaRepository {
       );
 
       await connection.execute(
-        "UPDATE employee_profiles SET base_salary = ? WHERE user_id = ?",
+        "UPDATE employees SET base_salary = ? WHERE user_id = ?",
         [input.base_salary, userId],
       );
     });
@@ -111,14 +104,13 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async calculate(month: number, year: number): Promise<PayrollCalculation[]> {
-    await this.ensureSchema();
     const start = this.periodStart(month, year);
     const end = this.periodEnd(month, year);
     const rows = await this.query<PayrollEmployeeRow[]>(
       `
         SELECT u.id,
           u.name,
-          ep.base_salary AS salary,
+          e.base_salary AS salary,
           ps.base_salary,
           ps.housing_allowance,
           ps.transport_allowance,
@@ -130,13 +122,13 @@ export class PayrollRepository extends SchemaRepository {
           SUM(CASE WHEN ar.status = 'late' THEN 1 ELSE 0 END) AS late_days,
           SUM(CASE WHEN ar.status = 'on_leave' THEN 1 ELSE 0 END) AS half_days
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
         LEFT JOIN payroll_settings ps ON ps.user_id = u.id
         LEFT JOIN attendance_records ar
           ON ar.user_id = u.id
           AND ar.work_date BETWEEN ? AND ?
-        WHERE u.role = 'staff' AND ep.status = 'active'
-        GROUP BY u.id, u.name, ep.base_salary, ps.base_salary, ps.housing_allowance,
+        WHERE u.role = 'staff' AND e.status = 'active'
+        GROUP BY u.id, u.name, e.base_salary, ps.base_salary, ps.housing_allowance,
           ps.transport_allowance, ps.other_allowances, ps.deduction_per_absent_day,
           ps.deduction_per_late_day, ps.deduction_per_half_day
         ORDER BY u.name
@@ -169,7 +161,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async savePayroll(month: number, year: number, calculations: PayrollCalculation[]): Promise<void> {
-    await this.ensureSchema();
     const payPeriod = this.periodStart(month, year);
 
     await this.transaction(async (connection) => {
@@ -202,7 +193,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async findPeriod(month: number, year: number): Promise<RowDataPacket[]> {
-    await this.ensureSchema();
     return this.query<RowDataPacket[]>(
       `
         SELECT pr.id,
@@ -232,17 +222,16 @@ export class PayrollRepository extends SchemaRepository {
     month: number,
     year: number,
   ): Promise<StaffPayslip | null> {
-    await this.ensureSchema();
     const rows = await this.query<StaffPayrollRow[]>(
       `
         SELECT pr.id,
           u.id AS user_id,
           u.name,
           CONCAT('EMP-', LPAD(u.id, 4, '0')) AS employee_id,
-          ep.position,
+          e.position,
           DATE_FORMAT(pr.pay_period, '%Y-%m-%d') AS pay_period,
           pr.base_salary,
-          ep.base_salary AS profile_salary,
+          e.base_salary AS profile_salary,
           ps.housing_allowance,
           ps.transport_allowance,
           ps.other_allowances,
@@ -251,7 +240,7 @@ export class PayrollRepository extends SchemaRepository {
           pr.net_pay,
           pr.status
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
         LEFT JOIN payroll_records pr
           ON pr.user_id = u.id
           AND YEAR(pr.pay_period) = ?
@@ -298,7 +287,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async findStaffPayslipHistory(userId: number): Promise<StaffPayslipHistoryItem[]> {
-    await this.ensureSchema();
     const rows = await this.query<RowDataPacket[]>(
       `
         SELECT id,
@@ -328,7 +316,6 @@ export class PayrollRepository extends SchemaRepository {
   }
 
   public async deletePeriod(month: number, year: number): Promise<number> {
-    await this.ensureSchema();
     const result = await this.execute(
       "DELETE FROM payroll_records WHERE YEAR(pay_period) = ? AND MONTH(pay_period) = ?",
       [year, month],

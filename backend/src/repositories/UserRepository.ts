@@ -21,8 +21,6 @@ export class UserRepository extends SchemaRepository {
   }
 
   public async create(data: CreateUserRequest): Promise<PublicUser> {
-    await this.ensureEmployeeProfileSchema();
-
     const result = await this.execute(
       "INSERT INTO users (name, email, password, login_password, role) VALUES (?, ?, ?, ?, ?)",
       [
@@ -50,13 +48,13 @@ export class UserRepository extends SchemaRepository {
   ): Promise<void> {
     await this.execute(
       `
-        INSERT INTO employee_profiles
+        INSERT INTO employees
           (user_id, department, position, start_date, base_salary)
         VALUES (?, ?, ?, ?, ?)
       `,
       [
         userId,
-        data.department?.trim() || (data.role === "admin" ? "HR" : "Operations"),
+        data.department?.trim() || (data.role === "admin" ? "Human Resources" : "Management"),
         data.position?.trim() || (data.role === "admin" ? "Administrator" : "Staff"),
         data.startDate || null,
         this.normalizeSalary(data.salary),

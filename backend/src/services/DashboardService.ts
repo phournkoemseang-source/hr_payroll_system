@@ -10,8 +10,6 @@ export class DashboardService {
   constructor(private readonly dashboardRepository = new DashboardRepository()) {}
 
   public async getDashboard(user: JwtPayload): Promise<DashboardResponse> {
-    await this.dashboardRepository.ensureSchema();
-
     const [
       totalEmployees,
       employeesAddedThisMonth,

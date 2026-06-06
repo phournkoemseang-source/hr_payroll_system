@@ -25,28 +25,24 @@ interface EmployeeRow extends RowDataPacket {
 }
 
 export class EmployeeRepository extends SchemaRepository {
-  public async ensureSchema(): Promise<void> {
-    await this.ensureEmployeeProfileSchema();
-  }
-
   public async findAll(): Promise<Employee[]> {
-    await this.ensureSchema();
     const rows = await this.query<EmployeeRow[]>(`
       SELECT u.id,
         u.name,
         u.email,
         u.login_password AS loginPassword,
-        ep.department,
-        ep.position,
+        e.department,
+        e.position,
         ep.phone_number AS phoneNumber,
         ep.address,
         DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
         ep.profile_photo AS profilePhoto,
-        DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
-        ep.base_salary AS salary,
-        ep.status
+        DATE_FORMAT(e.start_date, '%Y-%m-%d') AS startDate,
+        e.base_salary AS salary,
+        e.status
       FROM users u
-      INNER JOIN employee_profiles ep ON ep.user_id = u.id
+      INNER JOIN employees e ON e.user_id = u.id
+      LEFT JOIN employee_profiles ep ON ep.user_id = u.id
       WHERE u.role = 'staff'
       ORDER BY u.created_at DESC, u.id DESC
     `);
@@ -54,24 +50,24 @@ export class EmployeeRepository extends SchemaRepository {
   }
 
   public async findById(id: number): Promise<Employee | null> {
-    await this.ensureSchema();
     const rows = await this.query<EmployeeRow[]>(
       `
         SELECT u.id,
           u.name,
           u.email,
           u.login_password AS loginPassword,
-          ep.department,
-          ep.position,
+          e.department,
+          e.position,
           ep.phone_number AS phoneNumber,
           ep.address,
           DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
           ep.profile_photo AS profilePhoto,
-          DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
-          ep.base_salary AS salary,
-          ep.status
+          DATE_FORMAT(e.start_date, '%Y-%m-%d') AS startDate,
+          e.base_salary AS salary,
+          e.status
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
+        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
         WHERE u.role = 'staff' AND u.id = ?
       `,
       [id],
@@ -80,24 +76,24 @@ export class EmployeeRepository extends SchemaRepository {
   }
 
   public async findByEmail(email: string): Promise<Employee | null> {
-    await this.ensureSchema();
     const rows = await this.query<EmployeeRow[]>(
       `
         SELECT u.id,
           u.name,
           u.email,
           u.login_password AS loginPassword,
-          ep.department,
-          ep.position,
+          e.department,
+          e.position,
           ep.phone_number AS phoneNumber,
           ep.address,
           DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
           ep.profile_photo AS profilePhoto,
-          DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
-          ep.base_salary AS salary,
-          ep.status
+          DATE_FORMAT(e.start_date, '%Y-%m-%d') AS startDate,
+          e.base_salary AS salary,
+          e.status
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
+        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
         WHERE u.email = ? AND u.role = 'staff'
       `,
       [email],
@@ -109,7 +105,6 @@ export class EmployeeRepository extends SchemaRepository {
     data: CreateEmployeeRequest,
     hashedPassword: string,
   ): Promise<Employee> {
-    await this.ensureSchema();
     const userId = await this.transaction(async (connection) => {
       const [result] = await connection.execute<any>(
         "INSERT INTO users (name, email, password, login_password, role) VALUES (?, ?, ?, ?, 'staff')",
@@ -119,7 +114,7 @@ export class EmployeeRepository extends SchemaRepository {
 
       await connection.execute(
         `
-          INSERT INTO employee_profiles
+          INSERT INTO employees
             (user_id, department, position, start_date, base_salary, status)
           VALUES (?, ?, ?, ?, ?, ?)
         `,
@@ -131,6 +126,12 @@ export class EmployeeRepository extends SchemaRepository {
           this.normalizeSalary(data.salary),
           data.status || "active",
         ],
+      );
+
+      // Create empty profile
+      await connection.execute(
+        "INSERT INTO employee_profiles (user_id) VALUES (?)",
+        [userId]
       );
 
       return userId;
@@ -145,7 +146,6 @@ export class EmployeeRepository extends SchemaRepository {
     hashedPassword?: string,
     loginPassword?: string,
   ): Promise<Employee | null> {
-    await this.ensureSchema();
     const existing = await this.findById(id);
     if (!existing) {
       return null;
@@ -165,7 +165,7 @@ export class EmployeeRepository extends SchemaRepository {
       }
       await connection.execute(
         `
-          INSERT INTO employee_profiles
+          INSERT INTO employees
             (user_id, department, position, start_date, base_salary, status)
           VALUES (?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
@@ -190,7 +190,6 @@ export class EmployeeRepository extends SchemaRepository {
   }
 
   public async delete(id: number): Promise<boolean> {
-    await this.ensureSchema();
     const result = await this.execute(
       "DELETE FROM users WHERE id = ? AND role = 'staff'",
       [id],
@@ -213,7 +212,6 @@ export class EmployeeRepository extends SchemaRepository {
     userId: number,
     data: UpdateOwnProfileRequest,
   ): Promise<Employee | null> {
-    await this.ensureSchema();
     await this.transaction(async (connection) => {
       if (typeof data.name === "string") {
         await connection.execute(
@@ -224,16 +222,20 @@ export class EmployeeRepository extends SchemaRepository {
 
       await connection.execute(
         `
-          UPDATE employee_profiles
-          SET phone_number = ?, address = ?, date_of_birth = ?, profile_photo = ?
-          WHERE user_id = ?
+          INSERT INTO employee_profiles (user_id, phone_number, address, date_of_birth, profile_photo)
+          VALUES (?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            phone_number = VALUES(phone_number),
+            address = VALUES(address),
+            date_of_birth = VALUES(date_of_birth),
+            profile_photo = VALUES(profile_photo)
         `,
         [
+          userId,
           data.phoneNumber?.trim() || null,
           data.address?.trim() || null,
           data.dateOfBirth || null,
-          data.profilePhoto || null,
-          userId,
+          data.profilePhoto || null
         ],
       );
     });

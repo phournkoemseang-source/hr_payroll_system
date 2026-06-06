@@ -28,16 +28,12 @@ interface AttendanceStatusRow extends RowDataPacket {
 }
 
 export class DashboardRepository extends SchemaRepository {
-  public async ensureSchema(): Promise<void> {
-    await this.ensureHrSchema();
-  }
-
   public async countActiveStaff(): Promise<number> {
     return this.singleCount(`
       SELECT COUNT(*) AS total
       FROM users u
-      INNER JOIN employee_profiles ep ON ep.user_id = u.id
-      WHERE u.role = 'staff' AND ep.status = 'active'
+      INNER JOIN employees e ON e.user_id = u.id
+      WHERE u.role = 'staff' AND e.status = 'active'
     `);
   }
 
@@ -55,9 +51,9 @@ export class DashboardRepository extends SchemaRepository {
       SELECT COUNT(DISTINCT ar.user_id) AS total
       FROM attendance_records ar
       INNER JOIN users u ON u.id = ar.user_id
-      INNER JOIN employee_profiles ep ON ep.user_id = u.id
+      INNER JOIN employees e ON e.user_id = u.id
       WHERE u.role = 'staff'
-        AND ep.status = 'active'
+        AND e.status = 'active'
         AND ar.work_date = CURRENT_DATE()
         AND ar.status IN ('present', 'late')
     `);
@@ -73,14 +69,14 @@ export class DashboardRepository extends SchemaRepository {
 
   public async getTotalPayroll(): Promise<number> {
     const rows = await this.query<PayrollRow[]>(`
-      SELECT COALESCE(SUM(NULLIF(pr.net_pay, 0)), SUM(pr.gross_pay), SUM(ep.base_salary), 0) AS total
+      SELECT COALESCE(SUM(NULLIF(pr.net_pay, 0)), SUM(pr.gross_pay), SUM(e.base_salary), 0) AS total
       FROM users u
-      INNER JOIN employee_profiles ep ON ep.user_id = u.id
+      INNER JOIN employees e ON e.user_id = u.id
       LEFT JOIN payroll_records pr
         ON pr.user_id = u.id
         AND pr.pay_period >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')
         AND pr.pay_period < DATE_ADD(DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
-      WHERE u.role = 'staff' AND ep.status = 'active'
+      WHERE u.role = 'staff' AND e.status = 'active'
     `);
     return Number(rows[0]?.total || 0);
   }
@@ -143,9 +139,9 @@ export class DashboardRepository extends SchemaRepository {
           SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) AS absent
         FROM attendance_records ar
         INNER JOIN users u ON u.id = ar.user_id
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
         WHERE u.role = 'staff'
-          AND ep.status = 'active'
+          AND e.status = 'active'
           AND ar.work_date IN (${days.map(() => "?").join(", ")})
         GROUP BY ar.work_date
       `,
@@ -190,13 +186,13 @@ export class DashboardRepository extends SchemaRepository {
       SELECT u.id,
         u.name,
         u.email,
-        ep.department,
-        ep.position,
-        DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
-        ep.base_salary AS salary,
-        ep.status
+        e.department,
+        e.position,
+        DATE_FORMAT(e.start_date, '%Y-%m-%d') AS startDate,
+        e.base_salary AS salary,
+        e.status
       FROM users u
-      INNER JOIN employee_profiles ep ON ep.user_id = u.id
+      INNER JOIN employees e ON e.user_id = u.id
       WHERE u.role = 'staff'
       ORDER BY u.created_at DESC, u.id DESC
       LIMIT 5
@@ -224,15 +220,16 @@ export class DashboardRepository extends SchemaRepository {
           ep.address,
           DATE_FORMAT(ep.date_of_birth, '%Y-%m-%d') AS dateOfBirth,
           ep.profile_photo AS profilePhoto,
-          ep.department,
-          ep.position,
-          DATE_FORMAT(ep.start_date, '%Y-%m-%d') AS startDate,
-          ep.base_salary AS salary,
-          ep.annual_leave_balance AS annualLeaveBalance,
-          ep.sick_leave_balance AS sickLeaveBalance,
-          ep.status
+          e.department,
+          e.position,
+          DATE_FORMAT(e.start_date, '%Y-%m-%d') AS startDate,
+          e.base_salary AS salary,
+          e.annual_leave_balance AS annualLeaveBalance,
+          e.sick_leave_balance AS sickLeaveBalance,
+          e.status
         FROM users u
-        INNER JOIN employee_profiles ep ON ep.user_id = u.id
+        INNER JOIN employees e ON e.user_id = u.id
+        LEFT JOIN employee_profiles ep ON ep.user_id = u.id
         WHERE u.id = ? AND u.role = 'staff'
       `,
       [userId],

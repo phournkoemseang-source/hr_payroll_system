@@ -26,12 +26,7 @@ interface LeaveRequestRow extends RowDataPacket {
 }
 
 export class LeaveRequestRepository extends SchemaRepository {
-  public async ensureSchema(): Promise<void> {
-    await this.ensureLeaveRequestSchema();
-  }
-
   public async create(userId: number, data: CreateLeaveRequest, totalDays: number): Promise<LeaveRequestRecord> {
-    await this.ensureSchema();
     const result = await this.execute(
       `INSERT INTO leave_requests (user_id, leave_type, start_date, end_date, total_days, reason)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -46,7 +41,6 @@ export class LeaveRequestRepository extends SchemaRepository {
   }
 
   public async findById(id: number): Promise<LeaveRequestRecord | null> {
-    await this.ensureSchema();
     const rows = await this.query<LeaveRequestRow[]>(
       `${this.baseSelect()} WHERE lr.id = ? LIMIT 1`,
       [id],
@@ -55,7 +49,6 @@ export class LeaveRequestRepository extends SchemaRepository {
   }
 
   public async findForUser(userId: number): Promise<LeaveRequestRecord[]> {
-    await this.ensureSchema();
     const rows = await this.query<LeaveRequestRow[]>(
       `${this.baseSelect()} WHERE lr.user_id = ? ORDER BY lr.created_at DESC, lr.id DESC`,
       [userId],
@@ -64,7 +57,6 @@ export class LeaveRequestRepository extends SchemaRepository {
   }
 
   public async findAll(status?: LeaveStatus): Promise<LeaveRequestRecord[]> {
-    await this.ensureSchema();
     const filter = status ? "WHERE lr.status = ?" : "";
     const params = status ? [status] : [];
     const rows = await this.query<LeaveRequestRow[]>(
@@ -75,7 +67,6 @@ export class LeaveRequestRepository extends SchemaRepository {
   }
 
   public async cancelPending(id: number, userId: number): Promise<boolean> {
-    await this.ensureSchema();
     const result = await this.execute(
       `UPDATE leave_requests
        SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP
@@ -91,7 +82,6 @@ export class LeaveRequestRepository extends SchemaRepository {
     status: Extract<LeaveStatus, "approved" | "rejected">,
     reviewerNote: string | null,
   ): Promise<boolean> {
-    await this.ensureSchema();
     const request = await this.findById(id);
     if (!request || request.status !== "pending") {
       return false;
@@ -110,7 +100,7 @@ export class LeaveRequestRepository extends SchemaRepository {
         // Only deduct for annual and sick leave types
         if (request.leaveType === "annual" || request.leaveType === "sick") {
           await connection.execute(
-            `UPDATE employee_profiles
+            `UPDATE employees
              SET ${column} = GREATEST(0, ${column} - ?)
              WHERE user_id = ?`,
             [request.totalDays, request.userId],

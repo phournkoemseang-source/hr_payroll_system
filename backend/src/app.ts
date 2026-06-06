@@ -8,6 +8,7 @@ import { EmployeeRoutes } from "./routes/EmployeeRoutes";
 import { AttendanceRoutes } from "./routes/AttendanceRoutes";
 import { LeaveRequestRoutes } from "./routes/LeaveRequestRoutes";
 import { PayrollRoutes } from "./routes/PayrollRoutes";
+import { EmployeeRepository } from "./repositories/EmployeeRepository";
 
 class App {
   private readonly app: ExpressApplication;
@@ -19,11 +20,29 @@ class App {
     this.configureMiddlewares();
     this.configureRoutes();
     this.configureFrontendFallback();
+    this.initializeDatabase();
+  }
+
+  private async initializeDatabase(): Promise<void> {
+    try {
+      const employeeRepo = new EmployeeRepository();
+      await employeeRepo.initializeSchema();
+    } catch (error) {
+      console.error("Failed to initialize database schema:", error);
+    }
   }
 
   public start(): void {
-    this.app.listen(envConfig.port, () => {
+    const server = this.app.listen(envConfig.port, () => {
       console.log(`Server running on http://localhost:${envConfig.port}`);
+    });
+
+    server.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.syscall === "listen" && error.code === "EADDRINUSE") {
+        console.error(`Port ${envConfig.port} is already in use. Please stop the process using it or set PORT to a different value.`);
+        process.exit(1);
+      }
+      throw error;
     });
   }
 
